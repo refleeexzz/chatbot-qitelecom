@@ -9,3 +9,7 @@ leads.db
 .idea/
 *.swp
 vendor/
+.dockerignore
+docker-compose.yml
+*.pid
+*.sock
