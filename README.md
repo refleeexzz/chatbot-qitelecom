@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # QI TELECOM - Sistema de Atendimento Inteligente
 
 Este projeto é um sistema completo de atendimento para provedores de internet, com chatbot integrado, interface web responsiva e integração com Google Sheets.
