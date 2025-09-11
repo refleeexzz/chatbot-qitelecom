@@ -49,7 +49,7 @@ Forneça uma solução objetiva em até 200 palavras, incluindo:
 - Passos para resolver
 - Dicas de prevenção
 
-Seja direto e útil.`, problema)
+Seja direto e útil, lembrando que você pode estar lidando com pessoas leigas no assunto.`, problema)
 
 	resp, err := c.model.GenerateContent(ctx, genai.Text(prompt))
 	if err != nil {
