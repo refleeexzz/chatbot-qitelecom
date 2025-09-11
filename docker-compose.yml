@@ -5,7 +5,7 @@ services:
     ports:
       - "8081:8081"
     environment:
-      GOOGLE_API_KEY: "AIzaSyBCXnAO5LDu-QFVQ3m4nZm9Rxju3dvAR9Y"
+      GOOGLE_API_KEY: "your_google_api_key"
       REDIS_ADDR: redis:6379
     volumes:
       - ./credentials.json:/app/credentials.json:ro
