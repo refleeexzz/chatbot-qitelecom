@@ -1,0 +1,11 @@
+credentials.json
+.env
+*.env
+leads.db
+*.exe
+*.out
+*.log
+.vscode/
+.idea/
+*.swp
+vendor/
