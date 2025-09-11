@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # QI TELECOM - Sistema de Atendimento Inteligente
 
 Este projeto é um sistema completo de atendimento para provedores de internet, com chatbot integrado, interface web responsiva e integração com Google Sheets.
@@ -29,3 +30,7 @@ Este projeto é um sistema completo de atendimento para provedores de internet, 
 
 ---
 Desenvolvido por Kauan Botura (dev) e Ronan Moreira (liderança do projeto)
+=======
+# chat-bot-qi-telecom
+Sistema de atendimento inteligente para provedores de internet, com chatbot integrado, interface web responsiva e integração com Google Sheets. Permite suporte técnico automatizado, consulta de planos, emissão de boletos e coleta de feedback, tudo com gerenciamento de sessões e histórico de atendimento.
+>>>>>>> 1ff6f0b4f010648de4480be87da9c0831d6f4fd2
