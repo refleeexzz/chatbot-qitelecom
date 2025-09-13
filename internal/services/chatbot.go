@@ -19,6 +19,11 @@ type ChatbotService struct {
 	ai     AIClient
 }
 
+const planList = `• QI FIBRA BASIC              - 300 Mega + QI TV PLAY + IPV6
+• QI FIBRA PREMIUM            - 600 Mega + QI TV PLAY + IPV6 + QUALIDADE QI
+• QI FIBRA PREMIUM (MELHOR)   - 650 Mega + QI TV PLAY + IPV6 + PARAMOUNT + WATCH TV
+• QI FIBRA PREMIUM TOP        - 700 Mega + QI TV PLAY + IPV6 + PARAMOUNT + WATCH TV`
+
 type SheetsClient interface {
 	SaveSupport(nome, problema, descricao, status string) error
 	SavePlans(nome, situacao, planoAtual, planoDesejado, observacoes string) error
@@ -43,6 +48,7 @@ type UserData struct {
 	UltimaAtividade    int64  `json:"ultima_atividade"`
 }
 
+// NewChatbotService cria instância do serviço de chatbot.
 func NewChatbotService(redis *redis.Client, db *sql.DB, sheets SheetsClient, ai AIClient) *ChatbotService {
 	return &ChatbotService{
 		redis:  redis,
@@ -52,18 +58,18 @@ func NewChatbotService(redis *redis.Client, db *sql.DB, sheets SheetsClient, ai 
 	}
 }
 
+// ProcessMessage roteia mensagem do usuário conforme estado atual.
 func (s *ChatbotService) ProcessMessage(userID, message string) (string, error) {
-	// Reseta sessão se inativa por mais de 10 minutos
+	// Reset de sessão após 10 minutos de inatividade
 	userData := s.getUserData(userID)
 	now := time.Now().Unix()
 	if userData.UltimaAtividade > 0 && now-userData.UltimaAtividade > 600 {
-		// Limpa estado e dados do usuário
 		ctx := context.Background()
 		s.redis.Del(ctx, "chat:"+userID)
 		s.redis.Del(ctx, "data:"+userID)
 		userData = UserData{}
 	}
-	// Atualiza timestamp de atividade
+	// Atualiza último uso
 	userData.UltimaAtividade = now
 	s.setUserData(userID, userData)
 	ctx := context.Background()
@@ -73,15 +79,11 @@ func (s *ChatbotService) ProcessMessage(userID, message string) (string, error) 
 		return s.showMainMenu(userID)
 	}
 
-	// Verificar estado atual
 	state, _ := s.redis.Get(ctx, "chat:"+userID).Result()
-
-	// Se não há estado, mostrar menu principal
 	if state == "" {
 		return s.showMainMenu(userID)
 	}
 
-	// Processar baseado no estado
 	switch state {
 	case "menu":
 		return s.handleMenuSelection(userID, message)
@@ -108,6 +110,7 @@ func (s *ChatbotService) ProcessMessage(userID, message string) (string, error) 
 	}
 }
 
+// showMainMenu reinicia estado e retorna menu principal.
 func (s *ChatbotService) showMainMenu(userID string) (string, error) {
 	ctx := context.Background()
 
@@ -118,23 +121,16 @@ func (s *ChatbotService) showMainMenu(userID string) (string, error) {
 	// Definir estado menu
 	s.redis.Set(ctx, "chat:"+userID, "menu", time.Hour)
 
-	return `**Olá! Bem-vindo à QI TELECOM! 📡**
+	return `**QI TELECOM | Menu Principal 📡**
 
-Como posso ajudá-lo hoje? Digite o **número** da opção desejada:
+Digite apenas o **número** da opção desejada:
 
-**1** - 🔧 **Suporte Técnico**
-*Problemas com internet, modem ou instalação*
+[1] Suporte Técnico         - Problemas com internet, modem ou instalação
+[2] Planos e Serviços        - Conhecer planos ou solicitar upgrade
+[3] Boleto e Financeiro      - Segunda via e questões financeiras
+[4] Assistente Livre         - Chat livre para qualquer dúvida
 
-**2** - 📋 **Planos e Serviços**
-*Conhecer nossos planos ou solicitar upgrade*
-
-**3** - 💰 **Boleto e Financeiro**
-*Segunda via de boleto e questões financeiras*
-
-**4** - 🤖 **Assistente Livre**
-*Chat livre para qualquer dúvida*
-
-Digite sua opção (1, 2, 3 ou 4):`, nil
+Digite sua opção (1-4):`, nil
 }
 
 func (s *ChatbotService) handleMenuSelection(userID, message string) (string, error) {
@@ -143,25 +139,21 @@ func (s *ChatbotService) handleMenuSelection(userID, message string) (string, er
 
 	switch option {
 	case "1":
-		// Suporte Técnico
 		s.redis.Set(ctx, "chat:"+userID, "support_name", time.Hour)
 		userData := UserData{TipoAtendimento: "Suporte Técnico", TentativasIA: 0}
 		s.setUserData(userID, userData)
 		return "🔧 **Suporte Técnico Selecionado**\n\nPara melhor atendê-lo, preciso do seu **nome completo**:", nil
 
 	case "2":
-		// Planos
 		s.redis.Set(ctx, "chat:"+userID, "plans_client_check", time.Hour)
 		userData := UserData{TipoAtendimento: "Planos e Serviços"}
 		s.setUserData(userID, userData)
-		return s.showPlansMenu(userID)
+		return "📋 **Planos e Serviços**\n\nVocê já é cliente QI TELECOM? Responda **SIM** ou **NÃO**.\n\n(Após responder, mostrarei as opções de planos.)", nil
 
 	case "3":
-		// Boleto
 		return s.showBoletoInfo(userID)
 
 	case "4":
-		// IA Livre
 		s.redis.Set(ctx, "chat:"+userID, "ai_free", time.Hour)
 		userData := UserData{TipoAtendimento: "IA Livre"}
 		s.setUserData(userID, userData)
@@ -172,14 +164,7 @@ func (s *ChatbotService) handleMenuSelection(userID, message string) (string, er
 	}
 }
 
-func (s *ChatbotService) showPlansMenu(userID string) (string, error) {
-	return `📋 **Nossos Planos QI TELECOM**
-
-"QI FIBRA BASIC - 300 Mega + QI TV PLAY + IPV6",
-	"QI FIBRA PREMIUM - 600 Mega + QI TV PLAY + IPV6 + QUALIDADE QI",
-	"QI FIBRA PREMIUM MELHOR ESCOLHA - 650 Mega + QI TV PLAY + IPV6 + PARAMOUNT + WATCH TV",
-	"QI FIBRA PREMIUM TOP - 700 Mega + QI TV PLAY + IPV6 + PARAMOUNT + WATCH TV",`, nil
-}
+// showPlansMenu removido (fluxo revisado)
 
 func (s *ChatbotService) showBoletoInfo(userID string) (string, error) {
 	ctx := context.Background()
@@ -187,23 +172,16 @@ func (s *ChatbotService) showBoletoInfo(userID string) (string, error) {
 
 	return `💰 **Boleto e Financeiro**
 
-Para **segunda via do boleto** ou questões financeiras, entre em contato:
+Para **segunda via** ou dúvidas financeiras, utilize os canais oficiais:
 
-**Francisco Alves**
-Avenida Brigadeiro Faria Lima 703 - Centro
-(44) 3643-1736
-**Iporã**
-Rua Katsuo Nakata 1115 - Centro
-(44) 98402-7130
-(44) 3199-9115
-**Palotina**
-Aldir Pedron, 1319 - Centro
-(44) 3649-1486
-**Terra Roxa**
-Avenida da Saudade 369 - Centro
-(44) 3645-3257
+Unidade / Responsável      | Endereço / Observação                      | Contato
+---------------------------|---------------------------------------------|-----------------
+Francisco Alves            | Av. Brigadeiro Faria Lima 703 - Centro      | (44) 3643-1736
+Iporã                      | Rua Katsuo Nakata 1115 - Centro             | (44) 98402-7130 / (44) 3199-9115
+Palotina                   | Aldir Pedron 1319 - Centro                  | (44) 3649-1486
+Terra Roxa                 | Av. da Saudade 369 - Centro                 | (44) 3645-3257
 
-⚠️ **Observação**: Nosso aplicativo de boletos está em desenvolvimento e em breve estará disponível!
+⚠️ *Aplicativo de boletos em desenvolvimento. Em breve novidades.*
 
 Digite **MENU** para voltar ao menu principal.`, nil
 }
@@ -244,7 +222,7 @@ func (s *ChatbotService) startTechnicalSupport(userID, problema string) (string,
 	2. Solução passo a passo 
 	3. Se não funcionar, próximos passos
 	
-	Seja técnico mas didático.`, problema)
+	Seja técnico mas didático, lembrando que você está se relacionando com pessoas leigas no assunto.`, problema)
 
 	if s.ai != nil {
 		response, err := s.ai.GenerateResponse(prompt)
@@ -299,7 +277,7 @@ func (s *ChatbotService) continueTechnicalSupport(userID string, tentativa int, 
 	prompt := fmt.Sprintf(`Esta é a tentativa %d/5 de resolver este problema técnico. 
 	Problema anterior: %s
 	
-	Forneça uma solução DIFERENTE e mais avançada. Seja mais específico e técnico.`, tentativa, problema)
+	Forneça uma solução DIFERENTE e mais avançada. Seja mais específico e didatico para uma pessoa leiga.`, tentativa, problema)
 
 	if s.ai != nil {
 		response, err := s.ai.GenerateResponse(prompt)
@@ -320,7 +298,7 @@ func (s *ChatbotService) continueTechnicalSupport(userID string, tentativa int, 
 	return fmt.Sprintf("%s\n\n**Isso resolveu seu problema?**\n- Digite **SIM** se resolveu\n- Digite **NÃO** se não resolveu", defaultSolutions[solutionIndex]), nil
 }
 
-// PLANOS
+// handlePlansClientCheck identifica se é cliente atual ou novo.
 func (s *ChatbotService) handlePlansClientCheck(userID, message string) (string, error) {
 	ctx := context.Background()
 	response := strings.ToLower(strings.TrimSpace(message))
@@ -330,7 +308,7 @@ func (s *ChatbotService) handlePlansClientCheck(userID, message string) (string,
 		userData.Situacao = "Cliente Atual"
 		s.setUserData(userID, userData)
 		s.redis.Set(ctx, "chat:"+userID, "plans_current", time.Hour)
-		return "👤 **Cliente Atual Identificado**\n\nQual seu **plano atual**?\n Digite uma das opções:\n\n• QI FIBRA BASIC - 300 Mega + QI TV PLAY + IPV6,\n• QI FIBRA PREMIUM - 600 Mega + QI TV PLAY + IPV6 + QUALIDADE QI,\n• QI FIBRA PREMIUM- 650 Mega + QI TV PLAY + IPV6 + PARAMOUNT + WATCH TV,\n• QI FIBRA PREMIUM TOP - 700 Mega + QI TV PLAY + IPV6 + PARAMOUNT + WATCH TV", nil
+		return "👤 **Cliente Atual Identificado**\n\nQual seu **plano atual**? Digite exatamente uma das opções abaixo:\n\n" + planList, nil
 	}
 
 	if response == "não" || response == "nao" {
@@ -338,7 +316,7 @@ func (s *ChatbotService) handlePlansClientCheck(userID, message string) (string,
 		userData.PlanoAtual = "Nenhum"
 		s.setUserData(userID, userData)
 		s.redis.Set(ctx, "chat:"+userID, "plans_selection", time.Hour)
-		return "🆕 **Novo Cliente - Bem-vindo!**\n\nPerfeito! Qual plano desperta seu interesse?\n\n• QI FIBRA BASIC - 300 Mega + QI TV PLAY + IPV6,\n• QI FIBRA PREMIUM - 600 Mega + QI TV PLAY + IPV6 + QUALIDADE QI,\n• QI FIBRA PREMIUM *MELHOR ESCOLHA* - 650 Mega + QI TV PLAY + IPV6 + PARAMOUNT + WATCH TV,\n• QI FIBRA PREMIUM TOP - 700 Mega + QI TV PLAY + IPV6 + PARAMOUNT + WATCH TV", nil
+		return "🆕 **Novo Cliente - Bem-vindo!**\n\nPerfeito! Qual plano desperta seu interesse?\n\n" + planList, nil
 	}
 
 	return "Por favor, responda **SIM** ou **NÃO**.", nil
@@ -351,7 +329,7 @@ func (s *ChatbotService) handlePlansCurrent(userID, message string) (string, err
 	s.setUserData(userID, userData)
 
 	s.redis.Set(ctx, "chat:"+userID, "plans_selection", time.Hour)
-	return fmt.Sprintf("📋 **Plano Atual: %s**\n\nGostaria de fazer **upgrade**? Veja nossas opções superiores:\n\nQI FIBRA BASIC - 300 Mega + QI TV PLAY + IPV6,\n• QI FIBRA PREMIUM - 600 Mega + QI TV PLAY + IPV6 + QUALIDADE QI,\n• QI FIBRA PREMIUM *MELHOR ESCOLHA* - 650 Mega + QI TV PLAY + IPV6 + PARAMOUNT + WATCH TV,\n• QI FIBRA PREMIUM TOP - 700 Mega + QI TV PLAY + IPV6 + PARAMOUNT + WATCH TV", userData.PlanoAtual), nil
+	return fmt.Sprintf("📋 **Plano Atual: %s**\n\nGostaria de fazer **upgrade**? Veja nossas opções superiores:\n\n%s", userData.PlanoAtual, planList), nil
 }
 
 func (s *ChatbotService) handlePlansSelection(userID, message string) (string, error) {
@@ -375,7 +353,6 @@ func (s *ChatbotService) handlePlansName(userID, message string) (string, error)
 	userData.Nome = strings.TrimSpace(message)
 	s.setUserData(userID, userData)
 
-	// Salvar na planilha
 	observacoes := fmt.Sprintf("Interesse em: %s | Plano atual: %s", userData.PlanoDesejado, userData.PlanoAtual)
 	s.sheets.SavePlans(userData.Nome, userData.Situacao, userData.PlanoAtual, userData.PlanoDesejado, observacoes)
 
@@ -399,6 +376,7 @@ func (s *ChatbotService) handleFreeAI(userID, message string) (string, error) {
 	return "🤖 Desculpe, não consegui processar sua pergunta no momento. Tente novamente ou digite **MENU** para voltar ao menu principal.", nil
 }
 
+// scheduleAfterServiceFeedback agenda coleta de feedback pós-atendimento.
 func (s *ChatbotService) scheduleAfterServiceFeedback(userID, nome, tipoAtendimento string) {
 	time.Sleep(2 * time.Second)
 
@@ -411,10 +389,6 @@ func (s *ChatbotService) scheduleAfterServiceFeedback(userID, nome, tipoAtendime
 	userData.AguardandoFeedback = false
 	s.setUserData(userID, userData)
 
-	// Enviar mensagem de feedback diretamente no chat (simular via Redis)
-	// O frontend deve buscar o novo estado e exibir a mensagem de feedback
-	// Aqui, retornamos a mensagem padrão de feedback
-	// Se houver integração websocket, pode ser disparado aqui
 	log.Printf("FEEDBACK REQUEST for %s: Como foi nosso atendimento?", userID)
 }
 
@@ -423,23 +397,19 @@ func (s *ChatbotService) handleSupportFeedback(userID, message string) (string, 
 	userData := s.getUserData(userID)
 
 	if !userData.AguardandoFeedback {
-		// Primeira mensagem de feedback - capturar avaliação
 		feedback := strings.TrimSpace(message)
-		userData.Problema = feedback // Usar campo Problema para armazenar temporariamente a avaliação
+		userData.Problema = feedback
 		userData.AguardandoFeedback = true
 		s.setUserData(userID, userData)
 
 		return "💭 **Obrigado pela avaliação!**\n\nPara finalizar, tem alguma **sugestão** ou **comentário** para melhorarmos nosso atendimento?\n\n*(Digite sua sugestão ou 'NÃO' se não tiver)*", nil
 	}
 
-	// Segunda mensagem - capturar sugestões
 	sugestoes := strings.TrimSpace(message)
 	if strings.ToLower(sugestoes) == "não" || strings.ToLower(sugestoes) == "nao" {
 		sugestoes = ""
 	}
-
-	// Salvar feedback completo
-	avaliacao := userData.Problema // Recuperar a avaliação que foi armazenada temporariamente
+	avaliacao := userData.Problema
 	s.sheets.SaveFeedback(userData.Nome, userData.TipoAtendimento, avaliacao, sugestoes)
 
 	s.redis.Set(ctx, "chat:"+userID, "menu", time.Hour)
@@ -447,6 +417,7 @@ func (s *ChatbotService) handleSupportFeedback(userID, message string) (string, 
 }
 
 // Métodos utilitários
+// getUserData lê dados do usuário do Redis.
 func (s *ChatbotService) getUserData(userID string) UserData {
 	ctx := context.Background()
 	data, err := s.redis.Get(ctx, "data:"+userID).Result()
@@ -459,6 +430,7 @@ func (s *ChatbotService) getUserData(userID string) UserData {
 	return userData
 }
 
+// setUserData grava dados do usuário no Redis.
 func (s *ChatbotService) setUserData(userID string, userData UserData) {
 	ctx := context.Background()
 	data, _ := json.Marshal(userData)

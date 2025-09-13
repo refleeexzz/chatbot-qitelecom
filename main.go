@@ -26,9 +26,10 @@ func main() {
 	zerologlog.Logger = zerologlog.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
 	// 🔑 Carregar variáveis de ambiente
-	if err := godotenv.Load(); err != nil {
-		zerologlog.Warn().Err(err).Msg("Arquivo .env não encontrado, usando variáveis de ambiente do sistema")
-	}
+	if err := godotenv.Load("C:/Users/Uaurio/Documents/LEADPROJECT/.env"); err != nil {
+    zerologlog.Warn().Err(err).Msg("Arquivo .env não encontrado, usando variáveis de ambiente do sistema")
+}
+
 
 	// 🗄️ Configurar banco de dados SQLite
 	db, err := setupDatabase()
@@ -145,7 +146,7 @@ func startServer() {
 
 	// Iniciar servidor em goroutine
 	go func() {
-		zerologlog.Info().Msgf("🚀 QIBOT rodando em %s", server.Addr)
+		zerologlog.Info().Msgf("🚀 QIBOT rodando em http://localhost:8081")
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			zerologlog.Fatal().Err(err).Msg("Erro ao iniciar servidor")
 		}
