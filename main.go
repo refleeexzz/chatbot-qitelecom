@@ -166,3 +166,5 @@ func startServer() {
 		zerologlog.Info().Msg("✅ Servidor parado com sucesso")
 	}
 }
+
+//Copyright 2025 Kauan Botura

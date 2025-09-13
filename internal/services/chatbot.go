@@ -436,3 +436,6 @@ func (s *ChatbotService) setUserData(userID string, userData UserData) {
 	data, _ := json.Marshal(userData)
 	s.redis.Set(ctx, "data:"+userID, data, time.Hour)
 }
+
+
+//Copyright 2025 Kauan Botura
