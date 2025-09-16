@@ -5,14 +5,22 @@ services:
     ports:
       - "8081:8081"
     environment:
-      GOOGLE_API_KEY: "your_google_api_key"
+      GOOGLE_SHEETS_ID: "${GOOGLE_SHEETS_ID}"
+      GOOGLE_API_KEY: "${GOOGLE_API_KEY}"
       REDIS_ADDR: redis:6379
+      REDIS_PASSWORD: "${REDIS_PASSWORD}"
+      FORCE_HTTPS: "${FORCE_HTTPS:-false}"
+      ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-http://localhost:8081}"
+      RATE_LIMIT_ENABLED: "${RATE_LIMIT_ENABLED:-true}"
+      MAX_REQUEST_SIZE_BYTES: "${MAX_REQUEST_SIZE_BYTES:-1048576}"
     volumes:
       - ./credentials.json:/app/credentials.json:ro
       - ./leads.db:/app/leads.db
     restart: unless-stopped
     depends_on:
       - redis
+    # Security: run as non-root user
+    user: "1000:1000"
 
   redis:
     image: redis:7-alpine
@@ -20,3 +28,7 @@ services:
     ports:
       - "6379:6379"
     restart: unless-stopped
+    # Security: require password if set
+    command: redis-server ${REDIS_PASSWORD:+--requirepass $REDIS_PASSWORD}
+    # Security: run as non-root user
+    user: "999:999"

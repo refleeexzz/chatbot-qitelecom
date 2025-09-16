@@ -7,10 +7,13 @@ import (
 	"strings"
 
 	"github.com/rs/zerolog/log"
+
+	"leadprojectarrumado/internal/security"
 )
 
 type ChatbotHandler struct {
-	service ChatbotService
+	service   ChatbotService
+	validator *security.InputValidator
 }
 
 type ChatbotService interface {
@@ -28,16 +31,16 @@ type ChatResponse struct {
 }
 
 // Cria um novo handler do chatbot
-func NewChatbotHandler(service ChatbotService) *ChatbotHandler {
-	return &ChatbotHandler{service: service}
+func NewChatbotHandler(service ChatbotService, securityConfig *security.SecurityConfig) *ChatbotHandler {
+	return &ChatbotHandler{
+		service:   service,
+		validator: security.NewInputValidator(securityConfig),
+	}
 }
 
 // Processa requisições do chatbot
 func (h *ChatbotHandler) HandleChatbot(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
@@ -62,22 +65,26 @@ func (h *ChatbotHandler) HandleChatbot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validar entrada
-	if req.UserID == "" {
-		req.UserID = "anonymous"
-	}
-	if strings.TrimSpace(req.Message) == "" {
+	// Validate and sanitize input
+	cleanUserID, cleanMessage, err := h.validator.ValidateAndSanitizeUserInput(req.UserID, req.Message)
+	if err != nil {
+		log.Error().Err(err).
+			Str("user_id", security.SanitizeForLog(req.UserID)).
+			Str("message", security.SanitizeForLog(req.Message)).
+			Msg("Input validation failed")
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(ChatResponse{
-			Error: "Mensagem não pode estar vazia",
+			Error: "Entrada inválida: " + err.Error(),
 		})
 		return
 	}
 
-	// Processar mensagem
-	response, err := h.service.ProcessMessage(req.UserID, req.Message)
+	// Processar mensagem com dados limpos
+	response, err := h.service.ProcessMessage(cleanUserID, cleanMessage)
 	if err != nil {
-		log.Error().Err(err).Msg("Erro ao processar mensagem")
+		log.Error().Err(err).
+			Str("user_id", security.SanitizeForLog(cleanUserID)).
+			Msg("Erro ao processar mensagem")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(ChatResponse{
 			Error: "Erro interno do servidor",

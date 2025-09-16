@@ -13,13 +13,10 @@ import (
 	"google.golang.org/api/sheets/v4"
 )
 
-const (
-	SpreadsheetID = "1iUElxVPVqqBqAUq-9rXRjhSTAo94Quqt9-0KIUgNgOA"
-)
-
 type Client struct {
-	service *sheets.Service
-	ctx     context.Context
+	service       *sheets.Service
+	ctx           context.Context
+	spreadsheetID string
 }
 
 // Cria um novo cliente do Google Sheets
@@ -27,6 +24,12 @@ func NewClient() (*Client, error) {
 	ctx := context.Background()
 
 	fmt.Println("\nConectando ao Google Sheets...")
+
+	// Get Spreadsheet ID from environment variable
+	spreadsheetID := os.Getenv("GOOGLE_SHEETS_ID")
+	if spreadsheetID == "" {
+		return nil, fmt.Errorf("GOOGLE_SHEETS_ID environment variable is required")
+	}
 
 	// Autentica usando o arquivo credentials.json
 	b, err := os.ReadFile("credentials.json")
@@ -47,8 +50,9 @@ func NewClient() (*Client, error) {
 	}
 
 	client := &Client{
-		service: srv,
-		ctx:     ctx,
+		service:       srv,
+		ctx:           ctx,
+		spreadsheetID: spreadsheetID,
 	}
 
 	// Formatar as planilhas
@@ -80,7 +84,7 @@ func (c *Client) formatFeedbackSheet() {
 	}
 
 	// Inserir cabeçalhos
-	c.service.Spreadsheets.Values.Update(SpreadsheetID, "Página1!A1:E1", valueRange).
+	c.service.Spreadsheets.Values.Update(c.spreadsheetID, "Página1!A1:E1", valueRange).
 		ValueInputOption("RAW").
 		Do()
 
@@ -101,7 +105,7 @@ func (c *Client) formatSupportSheet() {
 	}
 
 	// Inserir cabeçalhos
-	c.service.Spreadsheets.Values.Update(SpreadsheetID, "Página2!A1:E1", valueRange).
+	c.service.Spreadsheets.Values.Update(c.spreadsheetID, "Página2!A1:E1", valueRange).
 		ValueInputOption("RAW").
 		Do()
 
@@ -122,7 +126,7 @@ func (c *Client) formatPlansSheet() {
 	}
 
 	// Inserir cabeçalhos
-	c.service.Spreadsheets.Values.Update(SpreadsheetID, "Página3!A1:F1", valueRange).
+	c.service.Spreadsheets.Values.Update(c.spreadsheetID, "Página3!A1:F1", valueRange).
 		ValueInputOption("RAW").
 		Do()
 
@@ -149,7 +153,7 @@ func (c *Client) SaveSupport(nome, problema, descricao, status string) error {
 		Values: values,
 	}
 
-	_, err := c.service.Spreadsheets.Values.Append(SpreadsheetID, "Página2!A:E", valueRange).
+	_, err := c.service.Spreadsheets.Values.Append(c.spreadsheetID, "Página2!A:E", valueRange).
 		ValueInputOption("RAW").
 		Do()
 
@@ -177,7 +181,7 @@ func (c *Client) SavePlans(nome, situacao, planoAtual, planoDesejado, observacoe
 		Values: values,
 	}
 
-	_, err := c.service.Spreadsheets.Values.Append(SpreadsheetID, "Página3!A:F", valueRange).
+	_, err := c.service.Spreadsheets.Values.Append(c.spreadsheetID, "Página3!A:F", valueRange).
 		ValueInputOption("RAW").
 		Do()
 
@@ -205,7 +209,7 @@ func (c *Client) SaveFeedback(nome, tipoAtendimento, feedback, sugestoes string)
 		Values: values,
 	}
 
-	_, err := c.service.Spreadsheets.Values.Append(SpreadsheetID, "Página1!A:E", valueRange).
+	_, err := c.service.Spreadsheets.Values.Append(c.spreadsheetID, "Página1!A:E", valueRange).
 		ValueInputOption("RAW").
 		Do()
 

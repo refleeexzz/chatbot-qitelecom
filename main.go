@@ -16,6 +16,7 @@ import (
 
 	"leadprojectarrumado/internal/ai"
 	"leadprojectarrumado/internal/handlers"
+	"leadprojectarrumado/internal/security"
 	"leadprojectarrumado/internal/services"
 	"leadprojectarrumado/internal/sheets"
 )
@@ -29,6 +30,13 @@ func main() {
 	if err := godotenv.Load(); err != nil {
 		zerologlog.Warn().Err(err).Msg("Arquivo .env não encontrado, usando variáveis de ambiente do sistema")
 	}
+
+	// 🔒 Carregar configuração de segurança
+	securityConfig, err := security.LoadSecurityConfig()
+	if err != nil {
+		zerologlog.Fatal().Err(err).Msg("Erro ao carregar configuração de segurança")
+	}
+	zerologlog.Info().Msg("Configuração de segurança carregada")
 
 	// 🗄️ Configurar banco de dados SQLite
 	db, err := setupDatabase()
@@ -52,20 +60,23 @@ func main() {
 	}
 
 	// 🔴 Configurar Redis
-	redisClient := setupRedis()
+	redisClient := setupRedis(securityConfig)
 	defer redisClient.Close()
 
 	// ⚙️ Configurar serviços
 	chatbotService := services.NewChatbotService(redisClient, db, sheetsClient, aiClient)
 
 	// 🚪 Configurar handlers
-	chatbotHandler := handlers.NewChatbotHandler(chatbotService)
+	chatbotHandler := handlers.NewChatbotHandler(chatbotService, securityConfig)
+
+	// 🛡️ Configurar middleware de segurança
+	securityMiddleware := security.NewSecurityMiddleware(securityConfig)
 
 	// 🌐 Configurar rotas
-	setupRoutes(chatbotHandler)
+	setupRoutes(chatbotHandler, securityMiddleware)
 
 	// 🚀 Iniciar servidor
-	startServer()
+	startServer(securityConfig)
 }
 
 func setupDatabase() (*sql.DB, error) {
@@ -92,7 +103,7 @@ func setupDatabase() (*sql.DB, error) {
 	return db, nil
 }
 
-func setupRedis() *redis.Client {
+func setupRedis(securityConfig *security.SecurityConfig) *redis.Client {
 	redisAddr := os.Getenv("REDIS_ADDR")
 	if redisAddr == "" {
 		redisAddr = "localhost:6379"
@@ -100,7 +111,7 @@ func setupRedis() *redis.Client {
 
 	client := redis.NewClient(&redis.Options{
 		Addr:         redisAddr,
-		Password:     "",
+		Password:     securityConfig.RedisPassword,
 		DB:           0,
 		DialTimeout:  5 * time.Second,
 		ReadTimeout:  3 * time.Second,
@@ -120,13 +131,26 @@ func setupRedis() *redis.Client {
 	return client
 }
 
-func setupRoutes(chatbotHandler *handlers.ChatbotHandler) {
-	http.HandleFunc("/chatbot", chatbotHandler.HandleChatbot)
-	http.HandleFunc("/health", chatbotHandler.HandleHealth)
-	http.HandleFunc("/", chatbotHandler.HandleStatic)
+func setupRoutes(chatbotHandler *handlers.ChatbotHandler, securityMiddleware *security.SecurityMiddleware) {
+	// Aplicar middleware de segurança
+	mux := http.NewServeMux()
+	
+	// Configurar rotas
+	mux.HandleFunc("/chatbot", chatbotHandler.HandleChatbot)
+	mux.HandleFunc("/health", chatbotHandler.HandleHealth)
+	mux.HandleFunc("/", chatbotHandler.HandleStatic)
+	
+	// Aplicar middleware em ordem (do último para o primeiro na cadeia)
+	handler := securityMiddleware.SecurityHeaders(mux)
+	handler = securityMiddleware.CORS(handler)
+	handler = securityMiddleware.RateLimit(handler)
+	handler = securityMiddleware.RequestSizeLimit(handler)
+	handler = securityMiddleware.HTTPSRedirect(handler)
+	
+	http.Handle("/", handler)
 }
 
-func startServer() {
+func startServer(securityConfig *security.SecurityConfig) {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8081"
@@ -134,9 +158,9 @@ func startServer() {
 
 	server := &http.Server{
 		Addr:         "0.0.0.0:" + port,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		ReadTimeout:  securityConfig.ReadTimeout,
+		WriteTimeout: securityConfig.WriteTimeout,
+		IdleTimeout:  securityConfig.IdleTimeout,
 	}
 
 	// Canal para capturar sinais do sistema
@@ -146,8 +170,18 @@ func startServer() {
 	// Iniciar servidor em goroutine
 	go func() {
 		zerologlog.Info().Msgf("🚀 QIBOT rodando em %s", server.Addr)
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			zerologlog.Fatal().Err(err).Msg("Erro ao iniciar servidor")
+		
+		// Tentar iniciar com HTTPS se certificados estiverem disponíveis
+		if securityConfig.TLSCertFile != "" && securityConfig.TLSKeyFile != "" {
+			zerologlog.Info().Msg("Iniciando servidor HTTPS")
+			if err := server.ListenAndServeTLS(securityConfig.TLSCertFile, securityConfig.TLSKeyFile); err != nil && err != http.ErrServerClosed {
+				zerologlog.Fatal().Err(err).Msg("Erro ao iniciar servidor HTTPS")
+			}
+		} else {
+			zerologlog.Warn().Msg("Iniciando servidor HTTP (desenvolvimento apenas)")
+			if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				zerologlog.Fatal().Err(err).Msg("Erro ao iniciar servidor")
+			}
 		}
 	}()
 
