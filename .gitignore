@@ -13,3 +13,4 @@ vendor/
 docker-compose.yml
 *.pid
 *.sock
+qibot
