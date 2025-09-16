@@ -236,43 +236,6 @@ func (s *ChatbotService) startTechnicalSupport(userID, problema string) (string,
 	return "🔧 **Análise Técnica - Tentativa 1/5**\n\nVamos diagnosticar seu problema passo a passo:\n\n1️⃣ **Verifique as conexões** - Confirme se todos os cabos estão bem conectados\n2️⃣ **Reinicie o modem** - Desligue por 30 segundos e ligue novamente\n3️⃣ **Teste a velocidade** - Use speedtest.net para verificar\n\n**Isso resolveu seu problema?**\n- Digite **SIM** se resolveu\n- Digite **NÃO** se não resolveu", nil
 }
 
-func (s *ChatbotService) handleSupportIA(userID, message string) (string, error) {
-	ctx := context.Background()
-	response := strings.ToLower(strings.TrimSpace(message))
-	userData := s.getUserData(userID)
-
-	if response == "sim" {
-		// Problema resolvido
-		s.sheets.SaveSupport(userData.Nome, userData.Problema, userData.Descricao, "Resolvido pela IA")
-
-		// Agendar feedback
-		go s.scheduleAfterServiceFeedback(userID, userData.Nome, userData.TipoAtendimento)
-
-		s.redis.Set(ctx, "chat:"+userID, "menu", time.Hour)
-		return "🎉 **Ótimo! Problema resolvido!**\n\nFico feliz em ter ajudado! Em alguns instantes vou pedir um feedback sobre nosso atendimento.\n\nDigite **MENU** para voltar ao menu principal.", nil
-	}
-
-	if response == "não" || response == "nao" {
-		userData.TentativasIA++
-
-		if userData.TentativasIA >= 5 {
-			// Encaminhar para técnico humano
-			s.sheets.SaveSupport(userData.Nome, userData.Problema, userData.Descricao, "Encaminhado para Técnico Humano")
-
-			// Agendar feedback
-			go s.scheduleAfterServiceFeedback(userID, userData.Nome, userData.TipoAtendimento)
-
-			s.redis.Set(ctx, "chat:"+userID, "menu", time.Hour)
-			return "🚨 **Encaminhamento para Técnico Especializado**\n\nVou agendar uma **visita técnica** para resolver seu problema pessoalmente.\n\n📅 **Prazo**: 24-48 horas\n📞 **Contato**: Nosso técnico entrará em contato\n\nEm alguns instantes vou pedir um feedback sobre nosso atendimento.\n\nDigite **MENU** para voltar ao menu principal.", nil
-		}
-
-		s.setUserData(userID, userData)
-		return s.continueTechnicalSupport(userID, userData.TentativasIA, userData.Problema)
-	}
-
-	return "Por favor, responda apenas **SIM** ou **NÃO** para que eu possa ajudá-lo melhor.", nil
-}
-
 func (s *ChatbotService) continueTechnicalSupport(userID string, tentativa int, problema string) (string, error) {
 	prompt := fmt.Sprintf(`Esta é a tentativa %d/5 de resolver este problema técnico. 
 	Problema anterior: %s
@@ -377,19 +340,33 @@ func (s *ChatbotService) handleFreeAI(userID, message string) (string, error) {
 }
 
 // scheduleAfterServiceFeedback agenda coleta de feedback pós-atendimento.
-func (s *ChatbotService) scheduleAfterServiceFeedback(userID, nome, tipoAtendimento string) {
-	time.Sleep(2 * time.Second)
-
+func (s *ChatbotService) handleSupportIA(userID, message string) (string, error) {
 	ctx := context.Background()
-	s.redis.Set(ctx, "chat:"+userID, "support_feedback", time.Hour)
-
+	response := strings.ToLower(strings.TrimSpace(message))
 	userData := s.getUserData(userID)
-	userData.Nome = nome
-	userData.TipoAtendimento = tipoAtendimento
-	userData.AguardandoFeedback = false
-	s.setUserData(userID, userData)
 
-	log.Printf("FEEDBACK REQUEST for %s: Como foi nosso atendimento?", userID)
+	if response == "sim" {
+		s.sheets.SaveSupport(userData.Nome, userData.Problema, userData.Descricao, "Resolvido pela IA")
+		userData.AguardandoFeedback = false
+		s.setUserData(userID, userData)
+		s.redis.Set(ctx, "chat:"+userID, "support_feedback", time.Hour)
+		return "🎉 **Ótimo! Problema resolvido!**\n\nPoderia nos dar um **feedback/opinião** sobre nosso atendimento? (Ex: Excelente, Bom, Regular...)", nil
+	}
+
+	if response == "não" || response == "nao" {
+		userData.TentativasIA++
+		if userData.TentativasIA >= 5 {
+			s.sheets.SaveSupport(userData.Nome, userData.Problema, userData.Descricao, "Encaminhado para Técnico Humano")
+			userData.AguardandoFeedback = false
+			s.setUserData(userID, userData)
+			s.redis.Set(ctx, "chat:"+userID, "support_feedback", time.Hour)
+			return "🚨 **Encaminhamento para Técnico Especializado**\n\n📅 Prazo: 24-48 horas\n📞 Entraremos em contato.\n\nAntes de finalizar, poderia avaliar nosso atendimento? (Ex: Excelente, Bom, Regular...)", nil
+		}
+		s.setUserData(userID, userData)
+		return s.continueTechnicalSupport(userID, userData.TentativasIA, userData.Problema)
+	}
+
+	return "Por favor, responda apenas **SIM** ou **NÃO** para que eu possa ajudá-lo melhor.", nil
 }
 
 func (s *ChatbotService) handleSupportFeedback(userID, message string) (string, error) {
@@ -436,6 +413,5 @@ func (s *ChatbotService) setUserData(userID string, userData UserData) {
 	data, _ := json.Marshal(userData)
 	s.redis.Set(ctx, "data:"+userID, data, time.Hour)
 }
-
 
 //Copyright 2025 Kauan Botura
