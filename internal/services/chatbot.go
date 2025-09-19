@@ -26,7 +26,7 @@ const planList = `• QI FIBRA BASIC              - 300 Mega + QI TV PLAY + IPV6
 
 type SheetsClient interface {
 	SaveSupport(nome, problema, descricao, status string) error
-	SavePlans(nome, situacao, planoAtual, planoDesejado, observacoes string) error
+	SavePlans(nome, situacao, planoAtual, planoDesejado, telefone, observacoes string) error
 	SaveFeedback(nome, tipoAtendimento, feedback, sugestoes string) error
 }
 
@@ -42,6 +42,7 @@ type UserData struct {
 	PlanoAtual         string `json:"plano_atual"`
 	PlanoDesejado      string `json:"plano_desejado"`
 	Situacao           string `json:"situacao"`
+	Telefone           string `json:"telefone"`
 	TentativasIA       int    `json:"tentativas_ia"`
 	TipoAtendimento    string `json:"tipo_atendimento"`
 	AguardandoFeedback bool   `json:"aguardando_feedback"`
@@ -101,6 +102,8 @@ func (s *ChatbotService) ProcessMessage(userID, message string) (string, error) 
 		return s.handlePlansCurrent(userID, message)
 	case "plans_name":
 		return s.handlePlansName(userID, message)
+	case "plans_phone":
+		return s.handlePlansPhone(userID, message)
 	case "plans_selection":
 		return s.handlePlansSelection(userID, message)
 	case "ai_free":
@@ -307,7 +310,7 @@ func (s *ChatbotService) handlePlansSelection(userID, message string) (string, e
 	}
 
 	s.redis.Set(ctx, "chat:"+userID, "plans_name", time.Hour)
-	return "📝 **Dados para Contato**\n\nPara finalizar, preciso do seu **nome completo**:", nil
+	return "📝 **Dados para Contato**\n\nPara avançar, preciso do seu **nome completo**:", nil
 }
 
 func (s *ChatbotService) handlePlansName(userID, message string) (string, error) {
@@ -316,12 +319,25 @@ func (s *ChatbotService) handlePlansName(userID, message string) (string, error)
 	userData.Nome = strings.TrimSpace(message)
 	s.setUserData(userID, userData)
 
+	s.redis.Set(ctx, "chat:"+userID, "plans_phone", time.Hour)
+	return "📞 Agora informe um **telefone/WhatsApp** para contato (somente números ou formato (XX) XXXXX-XXXX):", nil
+}
+
+func (s *ChatbotService) handlePlansPhone(userID, message string) (string, error) {
+	ctx := context.Background()
+	userData := s.getUserData(userID)
+	telefone := strings.TrimSpace(message)
+	// Sanitização simples removendo espaços
+	telefone = strings.ReplaceAll(telefone, " ", "")
+	userData.Telefone = telefone
+	s.setUserData(userID, userData)
+
 	observacoes := fmt.Sprintf("Interesse em: %s | Plano atual: %s", userData.PlanoDesejado, userData.PlanoAtual)
-	s.sheets.SavePlans(userData.Nome, userData.Situacao, userData.PlanoAtual, userData.PlanoDesejado, observacoes)
+	s.sheets.SavePlans(userData.Nome, userData.Situacao, userData.PlanoAtual, userData.PlanoDesejado, userData.Telefone, observacoes)
 
 	s.redis.Set(ctx, "chat:"+userID, "menu", time.Hour)
 
-	return fmt.Sprintf("🎉 **Dados Registrados com Sucesso!**\n\n**Nome**: %s\n**Situação**: %s\n**Plano Interesse**: %s\n\n📞 **Próximos Passos**:\nNossa equipe comercial entrará em contato em até 24 horas para finalizar!\n\nDigite **MENU** para voltar ao menu principal.", userData.Nome, userData.Situacao, userData.PlanoDesejado), nil
+	return fmt.Sprintf("🎉 **Dados Registrados com Sucesso!**\n\n**Nome**: %s\n**Situação**: %s\n**Plano Interesse**: %s\n**Telefone**: %s\n\n📞 **Próximos Passos**:\nNossa equipe comercial entrará em contato em até 24 horas para finalizar!\n\nDigite **MENU** para voltar ao menu principal.", userData.Nome, userData.Situacao, userData.PlanoDesejado, userData.Telefone), nil
 }
 
 func (s *ChatbotService) handleFreeAI(userID, message string) (string, error) {

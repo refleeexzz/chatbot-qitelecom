@@ -5,6 +5,7 @@ go 1.25.1
 require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/google/generative-ai-go v0.20.1
+	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/rs/zerolog v1.34.0
@@ -26,7 +27,6 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
 	github.com/googleapis/gax-go/v2 v2.15.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect

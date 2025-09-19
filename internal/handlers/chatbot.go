@@ -5,7 +5,9 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 )
 
@@ -23,8 +25,9 @@ type ChatRequest struct {
 }
 
 type ChatResponse struct {
-	Response string `json:"response"`
-	Error    string `json:"error,omitempty"`
+	Response  string `json:"response"`
+	Error     string `json:"error,omitempty"`
+	SessionID string `json:"session_id,omitempty"`
 }
 
 // Cria um novo handler do chatbot
@@ -56,21 +59,44 @@ func (h *ChatbotHandler) HandleChatbot(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Error().Err(err).Msg("Erro ao decodificar JSON")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ChatResponse{
-			Error: "JSON inválido",
-		})
+		json.NewEncoder(w).Encode(ChatResponse{Error: "JSON inválido"})
 		return
 	}
 
-	// Validar entrada
-	if req.UserID == "" {
-		req.UserID = "anonymous"
+	// Resolver / criar session ID
+	sessionID := strings.TrimSpace(req.UserID)
+	if sessionID == "" {
+		// Tenta header X-Session-ID
+		sessionID = strings.TrimSpace(r.Header.Get("X-Session-ID"))
 	}
+	if sessionID == "" {
+		// Tenta cookie
+		if c, err := r.Cookie("qid"); err == nil {
+			sessionID = c.Value
+		}
+	}
+	if sessionID == "" {
+		// Gera novo
+		newID, err := uuid.NewRandom()
+		if err != nil {
+			newID = uuid.Must(uuid.NewRandom())
+		}
+		sessionID = newID.String()
+		// Set cookie
+		http.SetCookie(w, &http.Cookie{
+			Name:     "qid",
+			Value:    sessionID,
+			Path:     "/",
+			HttpOnly: true,
+			Secure:   false, // colocar true em produção com HTTPS
+			SameSite: http.SameSiteLaxMode,
+			Expires:  time.Now().Add(24 * time.Hour),
+		})
+	}
+	req.UserID = sessionID
 	if strings.TrimSpace(req.Message) == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ChatResponse{
-			Error: "Mensagem não pode estar vazia",
-		})
+		json.NewEncoder(w).Encode(ChatResponse{Error: "Mensagem não pode estar vazia", SessionID: sessionID})
 		return
 	}
 
@@ -79,16 +105,12 @@ func (h *ChatbotHandler) HandleChatbot(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Error().Err(err).Msg("Erro ao processar mensagem")
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(ChatResponse{
-			Error: "Erro interno do servidor",
-		})
+		json.NewEncoder(w).Encode(ChatResponse{Error: "Erro interno do servidor", SessionID: sessionID})
 		return
 	}
 
 	// Resposta de sucesso
-	json.NewEncoder(w).Encode(ChatResponse{
-		Response: response,
-	})
+	json.NewEncoder(w).Encode(ChatResponse{Response: response, SessionID: sessionID})
 }
 
 // Serve arquivos estáticos

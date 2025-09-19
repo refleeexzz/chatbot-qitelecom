@@ -402,7 +402,7 @@
       const preserve = /\[[0-9]\]|\|/.test(text);
       if (preserve) {
         // Escapar HTML básico antes de inserir <pre> para evitar quebra (exceto tags já inseridas)
-        // Já assumimos que somente ** foi convertido, então substituímos & < > restantes
+        // Já assumimos que somente ** foi co nvertido, então substituímos & < > restantes
         html = html
           .replace(/&/g, '&amp;')
           .replace(/</g, '&lt;')

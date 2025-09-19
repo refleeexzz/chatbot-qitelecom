@@ -114,7 +114,7 @@ func (c *Client) formatPlansSheet() {
 
 	// Cabeçalhos da Página3 (Planos)
 	headers := [][]interface{}{
-		{"DATA/HORA", "NOME COMPLETO", "SITUAÇÃO CLIENTE", "PLANO ATUAL", "PLANO DESEJADO", "OBSERVAÇÕES"},
+		{"DATA/HORA", "NOME COMPLETO", "SITUAÇÃO CLIENTE", "PLANO ATUAL", "PLANO DESEJADO", "TELEFONE", "OBSERVAÇÕES"},
 	}
 
 	valueRange := &sheets.ValueRange{
@@ -122,7 +122,7 @@ func (c *Client) formatPlansSheet() {
 	}
 
 	// Inserir cabeçalhos
-	c.service.Spreadsheets.Values.Update(SpreadsheetID, "Página3!A1:F1", valueRange).
+	c.service.Spreadsheets.Values.Update(SpreadsheetID, "Página3!A1:G1", valueRange).
 		ValueInputOption("RAW").
 		Do()
 
@@ -163,21 +163,21 @@ func (c *Client) SaveSupport(nome, problema, descricao, status string) error {
 }
 
 // Salva dados de consulta de planos na Página3
-func (c *Client) SavePlans(nome, situacao, planoAtual, planoDesejado, observacoes string) error {
-	log.Printf("Salvando planos: %s, %s, %s, %s, %s", nome, situacao, planoAtual, planoDesejado, observacoes)
+func (c *Client) SavePlans(nome, situacao, planoAtual, planoDesejado, telefone, observacoes string) error {
+	log.Printf("Salvando planos: %s, %s, %s, %s, %s, %s", nome, situacao, planoAtual, planoDesejado, telefone, observacoes)
 
 	// Adiciona timestamp brasileiro
 	timestamp := time.Now().Format("02/01/2006 15:04:05")
 
 	values := [][]interface{}{
-		{timestamp, nome, situacao, planoAtual, planoDesejado, observacoes},
+		{timestamp, nome, situacao, planoAtual, planoDesejado, telefone, observacoes},
 	}
 
 	valueRange := &sheets.ValueRange{
 		Values: values,
 	}
 
-	_, err := c.service.Spreadsheets.Values.Append(SpreadsheetID, "Página3!A:F", valueRange).
+	_, err := c.service.Spreadsheets.Values.Append(SpreadsheetID, "Página3!A:G", valueRange).
 		ValueInputOption("RAW").
 		Do()
 

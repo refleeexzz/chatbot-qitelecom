@@ -16,6 +16,7 @@ import (
 
 	"leadprojectarrumado/internal/ai"
 	"leadprojectarrumado/internal/handlers"
+	"leadprojectarrumado/internal/security"
 	"leadprojectarrumado/internal/services"
 	"leadprojectarrumado/internal/sheets"
 )
@@ -27,9 +28,8 @@ func main() {
 
 	// 🔑 Carregar variáveis de ambiente
 	if err := godotenv.Load("C:/Users/Uaurio/Documents/LEADPROJECT/.env"); err != nil {
-    zerologlog.Warn().Err(err).Msg("Arquivo .env não encontrado, usando variáveis de ambiente do sistema")
-}
-
+		zerologlog.Warn().Err(err).Msg("Arquivo .env não encontrado, usando variáveis de ambiente do sistema")
+	}
 
 	// 🗄️ Configurar banco de dados SQLite
 	db, err := setupDatabase()
@@ -122,9 +122,12 @@ func setupRedis() *redis.Client {
 }
 
 func setupRoutes(chatbotHandler *handlers.ChatbotHandler) {
-	http.HandleFunc("/chatbot", chatbotHandler.HandleChatbot)
-	http.HandleFunc("/health", chatbotHandler.HandleHealth)
-	http.HandleFunc("/", chatbotHandler.HandleStatic)
+	cfg := security.LoadConfig()
+	rl := security.NewGlobalRateLimiter(cfg.RatePerMinute)
+
+	http.Handle("/chatbot", security.WrapHandler(http.HandlerFunc(chatbotHandler.HandleChatbot), cfg, rl))
+	http.Handle("/health", security.WrapHandler(http.HandlerFunc(chatbotHandler.HandleHealth), cfg, rl))
+	http.HandleFunc("/", chatbotHandler.HandleStatic) // página estática sem wrappers
 }
 
 func startServer() {
