@@ -11,5 +11,6 @@ FROM alpine:3.20
 WORKDIR /app
 RUN apk add --no-cache ca-certificates tzdata
 COPY --from=build /app/qibot /app/qibot
+COPY --from=build /app/index.html /app/index.html
 EXPOSE 8081
 ENTRYPOINT ["./qibot"]

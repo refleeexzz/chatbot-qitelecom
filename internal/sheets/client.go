@@ -34,7 +34,6 @@ func NewClient() (*Client, error) {
 		log.Fatalf("Não foi possível ler o arquivo de credenciais (credentials.json): %v", err)
 	}
 
-	// A função correta para contas de serviço é a JWTConfigFromJSON
 	config, err := google.JWTConfigFromJSON(b, "https://www.googleapis.com/auth/spreadsheets")
 	if err != nil {
 		log.Fatalf("Não foi possível processar o arquivo de credenciais: %v", err)

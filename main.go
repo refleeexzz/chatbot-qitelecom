@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -19,6 +20,9 @@ import (
 	"leadprojectarrumado/internal/security"
 	"leadprojectarrumado/internal/services"
 	"leadprojectarrumado/internal/sheets"
+
+	httptrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/net/http"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 func main() {
@@ -30,6 +34,23 @@ func main() {
 	if err := godotenv.Load("C:/Users/Uaurio/Documents/LEADPROJECT/.env"); err != nil {
 		zerologlog.Warn().Err(err).Msg("Arquivo .env não encontrado, usando variáveis de ambiente do sistema")
 	}
+
+	// ▶️ Iniciar Datadog tracer (APM)
+	agentHost := os.Getenv("DD_AGENT_HOST")
+	if agentHost == "" {
+		agentHost = "localhost"
+	}
+	agentPort := os.Getenv("DD_TRACE_AGENT_PORT")
+	if agentPort == "" {
+		agentPort = "8126"
+	}
+	tracer.Start(
+		tracer.WithAgentAddr(fmt.Sprintf("%s:%s", agentHost, agentPort)),
+		tracer.WithServiceName("qibot-chatbot"),
+		tracer.WithEnv(os.Getenv("DD_ENV")),
+		tracer.WithRuntimeMetrics(),
+	)
+	defer tracer.Stop()
 
 	// 🗄️ Configurar banco de dados SQLite
 	db, err := setupDatabase()
@@ -125,8 +146,12 @@ func setupRoutes(chatbotHandler *handlers.ChatbotHandler) {
 	cfg := security.LoadConfig()
 	rl := security.NewGlobalRateLimiter(cfg.RatePerMinute)
 
-	http.Handle("/chatbot", security.WrapHandler(http.HandlerFunc(chatbotHandler.HandleChatbot), cfg, rl))
-	http.Handle("/health", security.WrapHandler(http.HandlerFunc(chatbotHandler.HandleHealth), cfg, rl))
+	// Wrappear handlers com Datadog tracing
+	tracedChatbot := httptrace.WrapHandler(http.HandlerFunc(chatbotHandler.HandleChatbot), "qibot-chatbot", "/chatbot")
+	tracedHealth := httptrace.WrapHandler(http.HandlerFunc(chatbotHandler.HandleHealth), "qibot-chatbot", "/health")
+
+	http.Handle("/chatbot", security.WrapHandler(tracedChatbot, cfg, rl))
+	http.Handle("/health", security.WrapHandler(tracedHealth, cfg, rl))
 	http.HandleFunc("/", chatbotHandler.HandleStatic) // página estática sem wrappers
 }
 
