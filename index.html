@@ -20,7 +20,6 @@
       align-items: center;
       justify-content: center;
       padding: 20px;
-      /* Novo background animado */
       background: linear-gradient(120deg, #0daef8, #37d6c9, #1a237e, #f6d55c);
       background-size: 300% 300%;
       animation: gradientBG 12s ease-in-out infinite;
@@ -383,33 +382,25 @@
     
     const sid = getSession();
 
-    // Função para mostrar indicador de digitação
     function showTyping() {
       typingIndicator.style.display = 'block';
       chat.scrollTop = chat.scrollHeight;
     }
 
-    // Função para esconder indicador de digitação
     function hideTyping() {
       typingIndicator.style.display = 'none';
     }
 
-    // Função para processar texto com markdown simples
     function processText(text) {
-      // Converte **texto** em <strong>texto</strong>
       let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      // Se contiver alinhamento (detecção simples de colchetes [1] ou pipes de tabela) preserva monoespaço
       const preserve = /\[[0-9]\]|\|/.test(text);
       if (preserve) {
-        // Escapar HTML básico antes de inserir <pre> para evitar quebra (exceto tags já inseridas)
-        // Já assumimos que somente ** foi co nvertido, então substituímos & < > restantes
         html = html
           .replace(/&/g, '&amp;')
           .replace(/</g, '&lt;')
           .replace(/>/g, '&gt;')
           .replace(/&lt;strong&gt;/g, '<strong>')
           .replace(/&lt;\/strong&gt;/g, '</strong>');
-        // Converter quebras de linha em <br>
         html = html.split('\n').join('<br>');
         return '<pre style="font-family:inherit;font-size:14px;white-space:pre-wrap;margin:0;padding:0;background:transparent;border:none;">' + html + '</pre>';
       }
@@ -434,7 +425,6 @@
         });
         const data = await res.json();
         
-        // Simula delay de resposta para melhor UX
         setTimeout(() => {
           hideTyping();
           addMsg('bot', data.response || 'Desculpe, não consegui responder agora.');
@@ -464,10 +454,8 @@
       chat.scrollTop = chat.scrollHeight;
     }
 
-    // Auto-focus no input
     input.focus();
     
-    // Permite enviar com Enter
     input.addEventListener('keypress', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();

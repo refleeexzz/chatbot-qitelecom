@@ -1,3 +1,4 @@
+// Package sheets implementa integração e persistência de dados no Google Sheets.
 package sheets
 
 import (
@@ -17,18 +18,18 @@ const (
 	SpreadsheetID = "1iUElxVPVqqBqAUq-9rXRjhSTAo94Quqt9-0KIUgNgOA"
 )
 
+// Client encapsula a conexão e operações com o Google Sheets.
 type Client struct {
 	service *sheets.Service
 	ctx     context.Context
 }
 
-// Cria um novo cliente do Google Sheets
+// NewClient inicializa e autentica um novo cliente Google Sheets.
 func NewClient() (*Client, error) {
 	ctx := context.Background()
 
 	fmt.Println("\nConectando ao Google Sheets...")
 
-	// Autentica usando o arquivo credentials.json
 	b, err := os.ReadFile("credentials.json")
 	if err != nil {
 		log.Fatalf("Não foi possível ler o arquivo de credenciais (credentials.json): %v", err)
@@ -50,7 +51,6 @@ func NewClient() (*Client, error) {
 		ctx:     ctx,
 	}
 
-	// Formatar as planilhas
 	client.formatSheets()
 
 	log.Println("Google Sheets conectado e formatado com sucesso!")
@@ -58,18 +58,16 @@ func NewClient() (*Client, error) {
 	return client, nil
 }
 
-// Cria cabeçalhos das três páginas
+// formatSheets formata as três abas principais da planilha.
 func (c *Client) formatSheets() {
 	c.formatFeedbackSheet()
 	c.formatSupportSheet()
 	c.formatPlansSheet()
 }
 
-// Cabeçalhos da Página1 (Feedback)
+// formatFeedbackSheet formata a aba de feedbacks (Página1).
 func (c *Client) formatFeedbackSheet() {
-	// Não limpar a planilha para não apagar dados existentes
 
-	// Cabeçalhos da Página1 (Feedback)
 	headers := [][]interface{}{
 		{"DATA/HORA", "NOME COMPLETO", "TIPO DE ATENDIMENTO", "AVALIAÇÃO", "SUGESTÕES/OBSERVAÇÕES"},
 	}
@@ -78,7 +76,6 @@ func (c *Client) formatFeedbackSheet() {
 		Values: headers,
 	}
 
-	// Inserir cabeçalhos
 	c.service.Spreadsheets.Values.Update(SpreadsheetID, "Página1!A1:E1", valueRange).
 		ValueInputOption("RAW").
 		Do()
@@ -86,11 +83,9 @@ func (c *Client) formatFeedbackSheet() {
 	log.Println("Página1 (Feedback) formatada com cabeçalhos")
 }
 
-// Cabeçalhos da Página2 (Suporte)
+// formatSupportSheet formata a aba de suporte técnico (Página2).
 func (c *Client) formatSupportSheet() {
-	// Não limpar a planilha para não apagar dados existentes
 
-	// Cabeçalhos da Página2 (Suporte)
 	headers := [][]interface{}{
 		{"DATA/HORA", "NOME COMPLETO", "PROBLEMA RELATADO", "DESCRIÇÃO DETALHADA", "STATUS RESOLUÇÃO"},
 	}
@@ -99,7 +94,6 @@ func (c *Client) formatSupportSheet() {
 		Values: headers,
 	}
 
-	// Inserir cabeçalhos
 	c.service.Spreadsheets.Values.Update(SpreadsheetID, "Página2!A1:E1", valueRange).
 		ValueInputOption("RAW").
 		Do()
@@ -107,11 +101,9 @@ func (c *Client) formatSupportSheet() {
 	log.Println("Página2 (Suporte Técnico) formatada com cabeçalhos")
 }
 
-// Cabeçalhos da Página3 (Planos)
+// formatPlansSheet formata a aba de planos (Página3).
 func (c *Client) formatPlansSheet() {
-	// Não limpar a planilha para não apagar dados existentes
 
-	// Cabeçalhos da Página3 (Planos)
 	headers := [][]interface{}{
 		{"DATA/HORA", "NOME COMPLETO", "SITUAÇÃO CLIENTE", "PLANO ATUAL", "PLANO DESEJADO", "TELEFONE", "OBSERVAÇÕES"},
 	}
@@ -120,7 +112,6 @@ func (c *Client) formatPlansSheet() {
 		Values: headers,
 	}
 
-	// Inserir cabeçalhos
 	c.service.Spreadsheets.Values.Update(SpreadsheetID, "Página3!A1:G1", valueRange).
 		ValueInputOption("RAW").
 		Do()
@@ -128,7 +119,7 @@ func (c *Client) formatPlansSheet() {
 	log.Println("Página3 (Planos) formatada com cabeçalhos")
 }
 
-// Salva dados de suporte técnico na Página2
+// SaveSupport salva dados de suporte técnico na Página2 do Google Sheets.
 func (c *Client) SaveSupport(nome, problema, descricao, status string) error {
 	logger := logrus.WithFields(logrus.Fields{
 		"operation": "SaveSupport",
@@ -137,7 +128,6 @@ func (c *Client) SaveSupport(nome, problema, descricao, status string) error {
 	})
 	logger.Info("Salvando dados de suporte")
 
-	// Adiciona timestamp brasileiro
 	timestamp := time.Now().Format("02/01/2006 15:04:05")
 
 	values := [][]interface{}{
@@ -161,11 +151,10 @@ func (c *Client) SaveSupport(nome, problema, descricao, status string) error {
 	return nil
 }
 
-// Salva dados de consulta de planos na Página3
+// SavePlans salva dados de planos na Página3 do Google Sheets.
 func (c *Client) SavePlans(nome, situacao, planoAtual, planoDesejado, telefone, observacoes string) error {
 	log.Printf("Salvando planos: %s, %s, %s, %s, %s, %s", nome, situacao, planoAtual, planoDesejado, telefone, observacoes)
 
-	// Adiciona timestamp brasileiro
 	timestamp := time.Now().Format("02/01/2006 15:04:05")
 
 	values := [][]interface{}{
@@ -189,11 +178,10 @@ func (c *Client) SavePlans(nome, situacao, planoAtual, planoDesejado, telefone, 
 	return nil
 }
 
-// Salva dados de feedback na Página1
+// SaveFeedback salva feedbacks de atendimento na Página1 do Google Sheets.
 func (c *Client) SaveFeedback(nome, tipoAtendimento, feedback, sugestoes string) error {
 	log.Printf("Salvando feedback: %s, %s, %s, %s", nome, tipoAtendimento, feedback, sugestoes)
 
-	// Adiciona timestamp brasileiro
 	timestamp := time.Now().Format("02/01/2006 15:04:05")
 
 	values := [][]interface{}{

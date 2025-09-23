@@ -1,3 +1,4 @@
+// Package services implementa a lógica de negócio do chatbot, incluindo fluxos de atendimento, integração com IA e persistência.
 package services
 
 import (
@@ -12,6 +13,7 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
+// ChatbotService implementa o fluxo de atendimento do chatbot, integrando Redis, banco de dados, Google Sheets e IA.
 type ChatbotService struct {
 	redis  *redis.Client
 	db     *sql.DB
@@ -24,17 +26,20 @@ const planList = `• QI FIBRA BASIC              - 300 Mega + QI TV PLAY + IPV6
 • QI FIBRA PREMIUM (MELHOR)   - 650 Mega + QI TV PLAY + IPV6 + PARAMOUNT + WATCH TV
 • QI FIBRA PREMIUM TOP        - 700 Mega + QI TV PLAY + IPV6 + PARAMOUNT + WATCH TV`
 
+// SheetsClient define interface para persistência de dados em Google Sheets.
 type SheetsClient interface {
 	SaveSupport(nome, problema, descricao, status string) error
 	SavePlans(nome, situacao, planoAtual, planoDesejado, telefone, observacoes string) error
 	SaveFeedback(nome, tipoAtendimento, feedback, sugestoes string) error
 }
 
+// AIClient define interface para geração de respostas automáticas por IA.
 type AIClient interface {
 	GenerateResponse(problema string) (string, error)
 	GenerateFreeResponse(pergunta string) (string, error)
 }
 
+// UserData armazena o estado da sessão do usuário durante o atendimento.
 type UserData struct {
 	Nome               string `json:"nome"`
 	Problema           string `json:"problema"`
@@ -50,6 +55,7 @@ type UserData struct {
 }
 
 // NewChatbotService cria instância do serviço de chatbot.
+// NewChatbotService cria uma nova instância do serviço de chatbot.
 func NewChatbotService(redis *redis.Client, db *sql.DB, sheets SheetsClient, ai AIClient) *ChatbotService {
 	return &ChatbotService{
 		redis:  redis,
@@ -59,9 +65,8 @@ func NewChatbotService(redis *redis.Client, db *sql.DB, sheets SheetsClient, ai 
 	}
 }
 
-// ProcessMessage roteia mensagem do usuário conforme estado atual.
+// ProcessMessage roteia a mensagem do usuário conforme o estado atual da sessão.
 func (s *ChatbotService) ProcessMessage(userID, message string) (string, error) {
-	// Reset de sessão após 10 minutos de inatividade
 	userData := s.getUserData(userID)
 	now := time.Now().Unix()
 	if userData.UltimaAtividade > 0 && now-userData.UltimaAtividade > 600 {
@@ -70,7 +75,6 @@ func (s *ChatbotService) ProcessMessage(userID, message string) (string, error) 
 		s.redis.Del(ctx, "data:"+userID)
 		userData = UserData{}
 	}
-	// Atualiza último uso
 	userData.UltimaAtividade = now
 	s.setUserData(userID, userData)
 	ctx := context.Background()
@@ -113,15 +117,13 @@ func (s *ChatbotService) ProcessMessage(userID, message string) (string, error) 
 	}
 }
 
-// showMainMenu reinicia estado e retorna menu principal.
+// showMainMenu reinicia o estado e retorna o menu principal do chatbot.
 func (s *ChatbotService) showMainMenu(userID string) (string, error) {
 	ctx := context.Background()
 
-	// Limpar dados anteriores
 	s.redis.Del(ctx, "chat:"+userID)
 	s.redis.Del(ctx, "data:"+userID)
 
-	// Definir estado menu
 	s.redis.Set(ctx, "chat:"+userID, "menu", time.Hour)
 
 	return `**QI TELECOM | Menu Principal 📡**
@@ -136,6 +138,7 @@ Digite apenas o **número** da opção desejada:
 Digite sua opção (1-4):`, nil
 }
 
+// handleMenuSelection processa a escolha do menu principal pelo usuário.
 func (s *ChatbotService) handleMenuSelection(userID, message string) (string, error) {
 	ctx := context.Background()
 	option := strings.TrimSpace(message)
@@ -167,11 +170,10 @@ func (s *ChatbotService) handleMenuSelection(userID, message string) (string, er
 	}
 }
 
-// showPlansMenu removido (fluxo revisado)
-
+// showBoletoInfo retorna informações financeiras e canais de contato.
 func (s *ChatbotService) showBoletoInfo(userID string) (string, error) {
 	ctx := context.Background()
-	s.redis.Set(ctx, "chat:"+userID, "menu", time.Hour) // Volta ao menu
+	s.redis.Set(ctx, "chat:"+userID, "menu", time.Hour)
 
 	return `💰 **Boleto e Financeiro**
 
@@ -189,6 +191,7 @@ Terra Roxa                 | Av. da Saudade 369 - Centro                 | (44) 
 Digite **MENU** para voltar ao menu principal.`, nil
 }
 
+// handleSupportName armazena o nome do usuário e avança para o próximo passo do suporte.
 func (s *ChatbotService) handleSupportName(userID, message string) (string, error) {
 	ctx := context.Background()
 	userData := s.getUserData(userID)
@@ -199,6 +202,7 @@ func (s *ChatbotService) handleSupportName(userID, message string) (string, erro
 	return fmt.Sprintf("Obrigado, **%s**! 👋\n\nAgora, descreva detalhadamente o **problema técnico** que você está enfrentando:", userData.Nome), nil
 }
 
+// handleSupportProblem armazena o problema relatado e inicia o suporte técnico.
 func (s *ChatbotService) handleSupportProblem(userID, message string) (string, error) {
 	ctx := context.Background()
 	userData := s.getUserData(userID)
@@ -210,6 +214,7 @@ func (s *ChatbotService) handleSupportProblem(userID, message string) (string, e
 	return s.startTechnicalSupport(userID, message)
 }
 
+// startTechnicalSupport inicia o atendimento técnico, usando IA se disponível.
 func (s *ChatbotService) startTechnicalSupport(userID, problema string) (string, error) {
 	userData := s.getUserData(userID)
 	userData.TentativasIA = 1
@@ -239,6 +244,7 @@ func (s *ChatbotService) startTechnicalSupport(userID, problema string) (string,
 	return "🔧 **Análise Técnica - Tentativa 1/5**\n\nVamos diagnosticar seu problema passo a passo:\n\n1️⃣ **Verifique as conexões** - Confirme se todos os cabos estão bem conectados\n2️⃣ **Reinicie o modem** - Desligue por 30 segundos e ligue novamente\n3️⃣ **Teste a velocidade** - Use speedtest.net para verificar\n\n**Isso resolveu seu problema?**\n- Digite **SIM** se resolveu\n- Digite **NÃO** se não resolveu", nil
 }
 
+// continueTechnicalSupport gera novas tentativas de solução técnica para o problema do usuário.
 func (s *ChatbotService) continueTechnicalSupport(userID string, tentativa int, problema string) (string, error) {
 	prompt := fmt.Sprintf(`Esta é a tentativa %d/5 de resolver este problema técnico. 
 	Problema anterior: %s
@@ -250,7 +256,6 @@ func (s *ChatbotService) continueTechnicalSupport(userID string, tentativa int, 
 		if err == nil {
 			return fmt.Sprintf("🔧 **Nova Análise Técnica - Tentativa %d/5**\n\n%s\n\n---\n**Isso resolveu seu problema?**\n- Digite **SIM** se resolveu\n- Digite **NÃO** se não resolveu", tentativa, response), nil
 		}
-		// Se houve erro na IA, continua com solução padrão
 		log.Printf("IA indisponível para tentativa %d: %v", tentativa, err)
 	}
 
@@ -264,7 +269,7 @@ func (s *ChatbotService) continueTechnicalSupport(userID string, tentativa int, 
 	return fmt.Sprintf("%s\n\n**Isso resolveu seu problema?**\n- Digite **SIM** se resolveu\n- Digite **NÃO** se não resolveu", defaultSolutions[solutionIndex]), nil
 }
 
-// handlePlansClientCheck identifica se é cliente atual ou novo.
+// handlePlansClientCheck identifica se o usuário é cliente atual ou novo e direciona o fluxo.
 func (s *ChatbotService) handlePlansClientCheck(userID, message string) (string, error) {
 	ctx := context.Background()
 	response := strings.ToLower(strings.TrimSpace(message))
@@ -288,6 +293,7 @@ func (s *ChatbotService) handlePlansClientCheck(userID, message string) (string,
 	return "Por favor, responda **SIM** ou **NÃO**.", nil
 }
 
+// handlePlansCurrent armazena o plano atual informado pelo usuário.
 func (s *ChatbotService) handlePlansCurrent(userID, message string) (string, error) {
 	ctx := context.Background()
 	userData := s.getUserData(userID)
@@ -298,6 +304,7 @@ func (s *ChatbotService) handlePlansCurrent(userID, message string) (string, err
 	return fmt.Sprintf("📋 **Plano Atual: %s**\n\nGostaria de fazer **upgrade**? Veja nossas opções superiores:\n\n%s", userData.PlanoAtual, planList), nil
 }
 
+// handlePlansSelection armazena o plano desejado e avança para coleta de dados do usuário.
 func (s *ChatbotService) handlePlansSelection(userID, message string) (string, error) {
 	ctx := context.Background()
 	userData := s.getUserData(userID)
@@ -313,21 +320,43 @@ func (s *ChatbotService) handlePlansSelection(userID, message string) (string, e
 	return "📝 **Dados para Contato**\n\nPara avançar, preciso do seu **nome completo**:", nil
 }
 
+// handlePlansName armazena o nome do usuário e coleta telefone, se necessário.
 func (s *ChatbotService) handlePlansName(userID, message string) (string, error) {
 	ctx := context.Background()
 	userData := s.getUserData(userID)
 	userData.Nome = strings.TrimSpace(message)
+
+	if userData.Telefone == "" && len(userID) >= 10 && len(userID) <= 15 && isAllDigits(userID) {
+		userData.Telefone = userID
+	}
 	s.setUserData(userID, userData)
+
+	if userData.Telefone != "" {
+		observacoes := fmt.Sprintf("Interesse em: %s | Plano atual: %s", userData.PlanoDesejado, userData.PlanoAtual)
+		s.sheets.SavePlans(userData.Nome, userData.Situacao, userData.PlanoAtual, userData.PlanoDesejado, userData.Telefone, observacoes)
+		s.redis.Set(ctx, "chat:"+userID, "menu", time.Hour)
+		return fmt.Sprintf("🎉 **Dados Registrados com Sucesso!**\n\n**Nome**: %s\n**Situação**: %s\n**Plano Interesse**: %s\n**Telefone**: %s\n\n📞 **Próximos Passos**:\nNossa equipe comercial entrará em contato em até 24 horas para finalizar!\n\nDigite **MENU** para voltar ao menu principal.", userData.Nome, userData.Situacao, userData.PlanoDesejado, userData.Telefone), nil
+	}
 
 	s.redis.Set(ctx, "chat:"+userID, "plans_phone", time.Hour)
 	return "📞 Agora informe um **telefone/WhatsApp** para contato (somente números ou formato (XX) XXXXX-XXXX):", nil
 }
 
+// isAllDigits retorna true se a string contém apenas dígitos.
+func isAllDigits(s string) bool {
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+// handlePlansPhone armazena o telefone informado e finaliza o fluxo de planos.
 func (s *ChatbotService) handlePlansPhone(userID, message string) (string, error) {
 	ctx := context.Background()
 	userData := s.getUserData(userID)
 	telefone := strings.TrimSpace(message)
-	// Sanitização simples removendo espaços
 	telefone = strings.ReplaceAll(telefone, " ", "")
 	userData.Telefone = telefone
 	s.setUserData(userID, userData)
@@ -340,6 +369,7 @@ func (s *ChatbotService) handlePlansPhone(userID, message string) (string, error
 	return fmt.Sprintf("🎉 **Dados Registrados com Sucesso!**\n\n**Nome**: %s\n**Situação**: %s\n**Plano Interesse**: %s\n**Telefone**: %s\n\n📞 **Próximos Passos**:\nNossa equipe comercial entrará em contato em até 24 horas para finalizar!\n\nDigite **MENU** para voltar ao menu principal.", userData.Nome, userData.Situacao, userData.PlanoDesejado, userData.Telefone), nil
 }
 
+// handleFreeAI processa perguntas livres para a IA.
 func (s *ChatbotService) handleFreeAI(userID, message string) (string, error) {
 	if strings.ToLower(strings.TrimSpace(message)) == "menu" {
 		return s.showMainMenu(userID)
@@ -355,7 +385,7 @@ func (s *ChatbotService) handleFreeAI(userID, message string) (string, error) {
 	return "🤖 Desculpe, não consegui processar sua pergunta no momento. Tente novamente ou digite **MENU** para voltar ao menu principal.", nil
 }
 
-// scheduleAfterServiceFeedback agenda coleta de feedback pós-atendimento.
+// handleSupportIA processa a resposta do usuário sobre a resolução do problema técnico.
 func (s *ChatbotService) handleSupportIA(userID, message string) (string, error) {
 	ctx := context.Background()
 	response := strings.ToLower(strings.TrimSpace(message))
@@ -385,6 +415,7 @@ func (s *ChatbotService) handleSupportIA(userID, message string) (string, error)
 	return "Por favor, responda apenas **SIM** ou **NÃO** para que eu possa ajudá-lo melhor.", nil
 }
 
+// handleSupportFeedback armazena feedback e sugestões do usuário após o atendimento.
 func (s *ChatbotService) handleSupportFeedback(userID, message string) (string, error) {
 	ctx := context.Background()
 	userData := s.getUserData(userID)
@@ -409,8 +440,7 @@ func (s *ChatbotService) handleSupportFeedback(userID, message string) (string, 
 	return "🙏 **Feedback registrado com sucesso!**\n\nSua opinião é muito importante para melhorarmos nossos serviços.\n\nDigite **MENU** para voltar ao menu principal.", nil
 }
 
-// Métodos utilitários
-// getUserData lê dados do usuário do Redis.
+// getUserData lê o estado do usuário do Redis.
 func (s *ChatbotService) getUserData(userID string) UserData {
 	ctx := context.Background()
 	data, err := s.redis.Get(ctx, "data:"+userID).Result()
@@ -423,7 +453,7 @@ func (s *ChatbotService) getUserData(userID string) UserData {
 	return userData
 }
 
-// setUserData grava dados do usuário no Redis.
+// setUserData grava o estado do usuário no Redis.
 func (s *ChatbotService) setUserData(userID string, userData UserData) {
 	ctx := context.Background()
 	data, _ := json.Marshal(userData)

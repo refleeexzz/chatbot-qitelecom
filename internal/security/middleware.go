@@ -1,3 +1,4 @@
+// Package security implementa middlewares de segurança e rate limiting para handlers HTTP.
 package security
 
 import (
@@ -9,7 +10,7 @@ import (
 	"time"
 )
 
-// rateLimiter mantém contagem simples em memória por IP.
+// rateLimiter implementa um rate limiter simples baseado em IP.
 type rateLimiter struct {
 	mu       sync.Mutex
 	counts   map[string]int
@@ -18,6 +19,7 @@ type rateLimiter struct {
 	interval time.Duration
 }
 
+// newRateLimiter cria uma nova instância de rateLimiter.
 func newRateLimiter(limit int, interval time.Duration) *rateLimiter {
 	return &rateLimiter{
 		counts:   make(map[string]int),
@@ -27,7 +29,7 @@ func newRateLimiter(limit int, interval time.Duration) *rateLimiter {
 	}
 }
 
-// NewGlobalRateLimiter expõe um construtor simplificado para uso externo (minutos como janela).
+// NewGlobalRateLimiter cria um rate limiter global com janela de 1 minuto.
 func NewGlobalRateLimiter(perMinute int) *rateLimiter {
 	if perMinute <= 0 {
 		perMinute = 60
@@ -35,6 +37,7 @@ func NewGlobalRateLimiter(perMinute int) *rateLimiter {
 	return newRateLimiter(perMinute, time.Minute)
 }
 
+// allow verifica se o IP pode continuar fazendo requisições dentro do limite.
 func (r *rateLimiter) allow(key string) bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -46,17 +49,17 @@ func (r *rateLimiter) allow(key string) bool {
 	return r.counts[key] <= r.limit
 }
 
-// SecurityConfig contém parâmetros configuráveis.
+// SecurityConfig define limites de requisição e tamanho do corpo aceito.
 type SecurityConfig struct {
 	BodyLimitBytes int
 	RatePerMinute  int
 }
 
-// LoadConfig carrega limites de env, com defaults seguros.
+// LoadConfig carrega limites de segurança a partir das variáveis de ambiente.
 func LoadConfig() SecurityConfig {
 	cfg := SecurityConfig{
-		BodyLimitBytes: 4096, // 4KB default
-		RatePerMinute:  60,   // 60 req/min por IP
+		BodyLimitBytes: 4096,
+		RatePerMinute:  60,
 	}
 	if v := os.Getenv("BODY_LIMIT_BYTES"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
@@ -71,13 +74,11 @@ func LoadConfig() SecurityConfig {
 	return cfg
 }
 
-// WrapHandler aplica body limit, rate limiting e security headers.
+// WrapHandler aplica body limit, rate limiting e headers de segurança ao handler HTTP.
 func WrapHandler(h http.Handler, cfg SecurityConfig, rl *rateLimiter) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Limitar tamanho do corpo
 		r.Body = http.MaxBytesReader(w, r.Body, int64(cfg.BodyLimitBytes))
 
-		// Descobrir IP (X-Forwarded-For ignorado para segurança básica local)
 		ip, _, err := net.SplitHostPort(r.RemoteAddr)
 		if err != nil {
 			ip = r.RemoteAddr
@@ -87,7 +88,6 @@ func WrapHandler(h http.Handler, cfg SecurityConfig, rl *rateLimiter) http.Handl
 			return
 		}
 
-		// Security Headers básicos
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("Referrer-Policy", "no-referrer")

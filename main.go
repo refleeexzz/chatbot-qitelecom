@@ -24,7 +24,6 @@ import (
 	httptrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/net/http"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
-
 func main() {
 	// 📋 Configurar logging
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
@@ -153,6 +152,10 @@ func setupRoutes(chatbotHandler *handlers.ChatbotHandler) {
 	http.Handle("/chatbot", security.WrapHandler(tracedChatbot, cfg, rl))
 	http.Handle("/health", security.WrapHandler(tracedHealth, cfg, rl))
 	http.HandleFunc("/", chatbotHandler.HandleStatic) // página estática sem wrappers
+
+	// WhatsApp webhook handler
+	whatsappHandler := handlers.NewWhatsAppWebhookHandler(chatbotHandler.Service())
+	http.HandleFunc("/webhook/whatsapp", whatsappHandler.HandleWhatsAppWebhook)
 }
 
 func startServer() {
