@@ -63,7 +63,7 @@ func main() {
 	if err != nil {
 		zerologlog.Fatal().Err(err).Msg("Erro ao configurar Google Sheets")
 	}
-
+	
 	// 🤖 Configurar cliente IA Gemini
 	aiClient, err := ai.NewClient()
 	if err != nil {
