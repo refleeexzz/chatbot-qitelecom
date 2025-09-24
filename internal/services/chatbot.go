@@ -128,7 +128,7 @@ func (s *ChatbotService) ProcessMessage(userID, message string) (string, error) 
 func (s *ChatbotService) showMainMenu(userID string) (string, error) {
 	ctx := context.Background()
 
-	s.redis.Del(ctx, "chat:"+userID)
+	s.redis.Del(ctx, "chat:+"+userID)
 	s.redis.Del(ctx, "data:"+userID)
 
 	s.redis.Set(ctx, "chat:"+userID, "menu", time.Hour)
