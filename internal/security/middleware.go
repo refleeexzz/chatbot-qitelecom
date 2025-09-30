@@ -1,4 +1,4 @@
-// Package security implementa middlewares de segurança e rate limiting para handlers HTTP.
+// Package security implementa middlewares de segurança e rate limiting para handlers HTTP.		
 package security
 
 import (

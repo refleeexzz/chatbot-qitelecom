@@ -295,7 +295,18 @@ func (s *ChatbotService) handlePlansClientCheck(userID, message string) (string,
 		userData.Situacao = "Cliente Atual"
 		s.setUserData(userID, userData)
 		s.redis.Set(ctx, "chat:"+userID, "plans_current", time.Hour)
-		return "👤 *Cliente Atual Identificado*\n\nQual seu *plano atual*? Digite exatamente uma das opções abaixo:\n\n" + planList, nil
+		planOptions := []string{
+			"QI FIBRA BASIC",
+			"QI FIBRA PREMIUM",
+			"QI FIBRA PREMIUM (MELHOR)",
+			"QI FIBRA PREMIUM TOP",
+		}
+		menu := "\nEscolha seu plano atual digitando o número correspondente:\n"
+		for i, p := range planOptions {
+			menu += fmt.Sprintf("[%d] *%s*\n", i+1, p)
+		}
+		menu += "\n*Digite o número da opção desejada:*"
+		return "👤 *Cliente Atual Identificado*\n\nQual seu *plano atual*?" + menu, nil
 	}
 
 	if response == "não" || response == "nao" {
@@ -316,22 +327,63 @@ func (s *ChatbotService) handlePlansCurrent(userID, message string) (string, err
 	userData.PlanoAtual = strings.TrimSpace(message)
 	s.setUserData(userID, userData)
 
+	// Apresenta opções numeradas e inclui "manter o mesmo plano"
+	planOptions := []string{
+		"QI FIBRA BASIC",
+		"QI FIBRA PREMIUM",
+		"QI FIBRA PREMIUM (MELHOR)",
+		"QI FIBRA PREMIUM TOP",
+	}
+
+	menu := "\nEscolha o número do plano desejado para upgrade ou digite o número do seu plano atual para manter:\n"
+	for i, p := range planOptions {
+		menu += fmt.Sprintf("[%d] %s\n", i+1, p)
+	}
+	menu += "\n*Digite o número da opção desejada:*"
+
 	s.redis.Set(ctx, "chat:"+userID, "plans_selection", time.Hour)
-	return fmt.Sprintf("📋 *Plano Atual: %s*\n\nGostaria de fazer *upgrade*? Veja nossas opções superiores:\n\n%s", userData.PlanoAtual, planList), nil
+	return fmt.Sprintf("📋 *Plano Atual: %s*\n\nGostaria de fazer *upgrade* ou manter o mesmo plano?%s", userData.PlanoAtual, menu), nil
 }
 
 // handlePlansSelection armazena o plano desejado e avança para coleta de dados do usuário.
 func (s *ChatbotService) handlePlansSelection(userID, message string) (string, error) {
 	ctx := context.Background()
 	userData := s.getUserData(userID)
-	userData.PlanoDesejado = strings.TrimSpace(message)
-	s.setUserData(userID, userData)
+	option := strings.TrimSpace(message)
 
-	if strings.ToLower(userData.PlanoDesejado) == "manter atual" {
-		s.redis.Set(ctx, "chat:"+userID, "menu", time.Hour)
-		return "✅ *Entendido!*\n\nVocê optou por manter seu plano atual. Se mudar de ideia, estaremos aqui!\n\nDigite *MENU* para voltar ao menu principal.", nil
+	planOptions := []string{
+		"QI FIBRA BASIC",
+		"QI FIBRA PREMIUM",
+		"QI FIBRA PREMIUM (MELHOR)",
+		"QI FIBRA PREMIUM TOP",
 	}
 
+	selectedIndex := -1
+	for i := range planOptions {
+		if option == fmt.Sprintf("%d", i+1) {
+			selectedIndex = i
+			break
+		}
+	}
+
+	if selectedIndex != -1 {
+		// Se o plano escolhido for igual ao atual, manter
+		if strings.EqualFold(planOptions[selectedIndex], userData.PlanoAtual) {
+			userData.PlanoDesejado = userData.PlanoAtual
+			s.setUserData(userID, userData)
+			s.redis.Set(ctx, "chat:"+userID, "menu", time.Hour)
+			return "✅ *Entendido!*\n\nVocê optou por manter seu plano atual. Se mudar de ideia, estaremos aqui!\n\nDigite *MENU* para voltar ao menu principal.", nil
+		} else {
+			userData.PlanoDesejado = planOptions[selectedIndex]
+			s.setUserData(userID, userData)
+			s.redis.Set(ctx, "chat:"+userID, "plans_name", time.Hour)
+			return "📝 *Dados para Contato*\n\nPara avançar, preciso do seu *nome completo*:", nil
+		}
+	}
+
+	// Caso digite o nome do plano manualmente
+	userData.PlanoDesejado = option
+	s.setUserData(userID, userData)
 	s.redis.Set(ctx, "chat:"+userID, "plans_name", time.Hour)
 	return "📝 *Dados para Contato*\n\nPara avançar, preciso do seu *nome completo*:", nil
 }
