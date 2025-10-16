@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -201,7 +202,7 @@ func handleAdminDashboard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validar formato do token (deve começar com "admin_")
-	if len(cookie.Value) < 10 || cookie.Value[:6] != "admin_" {
+	if len(cookie.Value) < 10 || !strings.HasPrefix(cookie.Value, "admin_") {
 		// Token inválido - limpar cookie e mostrar login
 		http.SetCookie(w, &http.Cookie{
 			Name:     "admin_token",
