@@ -9,8 +9,12 @@ Este projeto é um sistema completo de atendimento para provedores de internet, 
 ## Como usar
 1. Clone o repositório
 2. Configure as credenciais do Google Sheets (`credentials.json`)
-3. Execute o backend Go
-4. Acesse a interface web em `index.html` ou via servidor
+3. Configure as variáveis de ambiente do WhatsApp Cloud API (opcional, para integração WhatsApp):
+	- `WHATSAPP_VERIFY_TOKEN`: Token de verificação do webhook (definido no painel Meta)
+	- `WHATSAPP_PHONE_ID`: ID do número do WhatsApp Cloud API
+	- `WHATSAPP_TOKEN`: Token de acesso (Bearer) da API do WhatsApp
+4. Execute o backend Go
+5. Acesse a interface web em `index.html` ou via servidor
 
 ## Sessões de Usuário (Isolamento de Conversa)
 
@@ -46,7 +50,34 @@ Ou envie diretamente em `user_id`:
 { "user_id":"<UUID>", "message":"menu" }
 ```
 
-Quando integrar com WhatsApp, utilize o ID único do número (ex: telefone) como `user_id` para reutilizar a sessão.
+
+## Integração com WhatsApp Cloud API
+
+O sistema suporta integração direta com o WhatsApp Cloud API (Meta). Basta configurar as variáveis de ambiente e apontar o webhook no painel Meta para:
+
+```
+https://<SEU_DOMÍNIO>/webhook/whatsapp
+```
+
+**Variáveis obrigatórias:**
+- `WHATSAPP_VERIFY_TOKEN`: Token de verificação do webhook (definido no painel Meta)
+- `WHATSAPP_PHONE_ID`: ID do número do WhatsApp Cloud API
+- `WHATSAPP_TOKEN`: Token de acesso (Bearer) da API do WhatsApp
+
+**Como funciona:**
+- O webhook recebe mensagens de texto do WhatsApp, processa usando o mesmo fluxo do chatbot e responde automaticamente.
+- O número do remetente é usado como `user_id` para isolar sessões.
+- O endpoint `/webhook/whatsapp` aceita POST (mensagens) e GET (validação Meta).
+
+**Testando:**
+1. Configure o webhook no painel Meta (WhatsApp Cloud API) para apontar para seu endpoint público.
+2. Envie mensagens para o número do WhatsApp Cloud API.
+3. O bot responderá automaticamente conforme o fluxo do chatbot.
+
+**Dica:**
+Se o telefone do usuário já está disponível no remetente, o fluxo de planos pode pular a etapa de pedir telefone.
+
+---
 
 ## Fluxo de Planos (Atualizado)
 

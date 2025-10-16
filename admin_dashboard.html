@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Admin - QIBOT</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+        }
+
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .tab-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .tab-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .stat-card h3 {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .number {
+            color: #667eea;
+            font-size: 36px;
+            font-weight: 700;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        button.primary {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+
+        button.primary:hover {
+            background: #5568d3;
+        }
+
+        button.danger {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th {
+            background: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge.lead {
+            background: #cfe2ff;
+            color: #084298;
+        }
+
+        .badge.cliente {
+            background: #e2d4f7;
+            color: #5a2d82;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .search-box {
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 QIBOT - Painel de Administração</h1>
+        <button class="logout-btn" onclick="logout()">Sair</button>
+    </div>
+
+    <div class="container">
+        <div class="stats">
+            <div class="stat-card">
+                <h3>Total de Contatos</h3>
+                <div class="number" id="totalContacts">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Leads</h3>
+                <div class="number" id="totalLeads">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Clientes</h3>
+                <div class="number" id="totalClients">0</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('contacts')">📋 Gerenciar Contatos</button>
+            <button class="tab-btn" onclick="switchTab('bulk')">📱 Disparos em Lote</button>
+        </div>
+
+        <!-- Tab: Gerenciar Contatos -->
+        <div id="contacts-tab" class="tab-content active">
+            <div class="card">
+                <h2>➕ Adicionar Novo Contato</h2>
+                <div id="alert-add" class="alert"></div>
+                <form id="addContactForm">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                        <div class="form-group">
+                            <label>Nome *</label>
+                            <input type="text" id="add_nome" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Telefone * (Ex: 5511999999999)</label>
+                            <input type="tel" id="add_telefone" required placeholder="5511999999999">
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="add_email">
+                        </div>
+                        <div class="form-group">
+                            <label>Tipo</label>
+                            <select id="add_tipo">
+                                <option value="Lead">Lead</option>
+                                <option value="Cliente">Cliente</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="add_opt_in" style="width: auto; margin-right: 8px;">
+                                ✅ Opt-in (autoriza receber mensagens)
+                            </label>
+                            <small style="display: block; color: #666; margin-top: 5px;">
+                                ⚠️ Obrigatório para compliance com Meta WhatsApp
+                            </small>
+                        </div>
+                    </div>
+                    <button type="submit" class="primary">Adicionar Contato</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>📋 Lista de Contatos</h2>
+                <div class="search-box">
+                    <input type="text" id="searchContacts" placeholder="🔍 Buscar por nome, telefone ou email...">
+                </div>
+                <div id="loading-contacts" class="loading" style="display: none;">Carregando...</div>
+                <table id="contactsTable">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Telefone</th>
+                            <th>Email</th>
+                            <th>Tipo</th>
+                            <th>Opt-in</th>
+                            <th>Data</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="contactsTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab: Disparos em Lote -->
+        <div id="bulk-tab" class="tab-content">
+            <!-- Estatísticas de Opt-in -->
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-label">✅ Com Opt-in</div>
+                    <div class="stat-value" id="optInCount">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">❌ Sem Opt-in</div>
+                    <div class="stat-value" id="noOptInCount">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">📊 Total</div>
+                    <div class="stat-value" id="totalOptInStats">-</div>
+                </div>
+            </div>
+
+            <div class="card" style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 20px;">
+                <strong>⚠️ Atenção - Compliance Meta WhatsApp:</strong>
+                <p style="margin: 8px 0 0 0;">Apenas contatos que marcaram <strong>Opt-in = Sim</strong> receberão mensagens. Isso garante conformidade com as políticas da Meta.</p>
+            </div>
+
+            <div class="card">
+                <h2>📱 Enviar Mensagens em Lote</h2>
+                <div id="alert-bulk" class="alert"></div>
+                <form id="bulkMessageForm">
+                    <div class="form-group">
+                        <label>Mensagem *</label>
+                        <textarea id="bulk_message" required maxlength="1000" placeholder="Digite a mensagem que será enviada..."></textarea>
+                        <small style="color: #999;"><span id="charCount">0</span>/1000 caracteres</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Destinatários (apenas com opt-in)</label>
+                        <select id="bulk_recipients" style="max-width: 300px;" onchange="loadOptInStats()">
+                            <option value="all">Todos os contatos com opt-in</option>
+                            <option value="Lead">Apenas Leads com opt-in</option>
+                            <option value="Cliente">Apenas Clientes com opt-in</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="primary">🚀 Enviar Mensagens</button>
+                </form>
+            </div>
+
+            <div class="card" style="margin-top: 20px;">
+                <h2>📋 Enviar Template (para leads fora da janela de 24h)</h2>
+                <div id="alert-template" class="alert"></div>
+                <form id="templateMessageForm">
+                    <div class="form-group">
+                        <label>Nome do Template *</label>
+                        <input type="text" id="template_name" required placeholder="Ex: promo_novembro">
+                        <small style="color: #666;">Use o nome exato do template aprovado pela Meta</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Idioma do Template *</label>
+                        <select id="template_language" style="max-width: 300px;" required>
+                            <option value="pt_BR">🇧🇷 Português (Brasil) - pt_BR</option>
+                            <option value="en_US">🇺🇸 English (US) - en_US</option>
+                            <option value="es_ES">🇪🇸 Español (España) - es_ES</option>
+                            <option value="es_MX">🇲🇽 Español (México) - es_MX</option>
+                            <option value="en">🌎 English - en</option>
+                            <option value="pt_PT">🇵🇹 Português (Portugal) - pt_PT</option>
+                            <option value="fr_FR">🇫🇷 Français - fr_FR</option>
+                            <option value="de_DE">🇩🇪 Deutsch - de_DE</option>
+                            <option value="it_IT">🇮🇹 Italiano - it_IT</option>
+                        </select>
+                        <small style="color: #666;">Escolha o idioma em que o template foi criado na Meta</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Parâmetros (opcional)</label>
+                        <input type="text" id="template_params" placeholder="Ex: 400 Mega, R$ 99,90">
+                        <small style="color: #666;">Separe por vírgula. Ordem: {{2}}, {{3}}, {{4}}... (se usar nome personalizado)</small>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label style="display: flex; align-items: center; cursor: pointer; user-select: none;">
+                            <input type="checkbox" id="use_contact_name" style="margin-right: 8px; width: auto; cursor: pointer;">
+                            <span>🎯 Usar nome do contato como {{1}}</span>
+                        </label>
+                        <small style="color: #666; margin-left: 28px;">
+                            ✅ Ativado: Cada pessoa receberá com seu próprio nome (ex: "Olá Maria")<br>
+                            ❌ Desativado: Use o campo "Parâmetros" para definir valores fixos
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>🖼️ Imagem do Header (opcional - apenas para templates com header VARIÁVEL)</label>
+                        <input type="url" id="header_image_url" placeholder="https://exemplo.com/imagem.jpg">
+                        <small style="color: #666;">
+                            ⚠️ <strong>DEIXE VAZIO</strong> se a imagem do template for fixa (a maioria dos casos)<br>
+                            ✅ Só preencha se o HEADER do template tiver variável de imagem (raro)
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Destinatários (apenas com opt-in)</label>
+                        <select id="template_recipients" style="max-width: 300px;" onchange="loadOptInStats()">
+                            <option value="all">Todos os contatos com opt-in</option>
+                            <option value="Lead">Apenas Leads com opt-in</option>
+                            <option value="Cliente">Apenas Clientes com opt-in</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="primary">📨 Enviar Templates</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allContacts = [];
+
+        // DEBUG: Verificar se há cookie
+        console.log('Dashboard carregado!');
+        console.log('Cookies:', document.cookie);
+
+        // Carregar dados ao iniciar
+        document.addEventListener('DOMContentLoaded', () => {
+            loadContacts();
+            loadOptInStats();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Adicionar contato
+            document.getElementById('addContactForm').addEventListener('submit', addContact);
+            
+            // Disparos em lote
+            document.getElementById('bulkMessageForm').addEventListener('submit', sendBulkMessages);
+            
+            // Disparos de template
+            document.getElementById('templateMessageForm').addEventListener('submit', sendBulkTemplates);
+            
+            // Contador de caracteres
+            document.getElementById('bulk_message').addEventListener('input', (e) => {
+                document.getElementById('charCount').textContent = e.target.value.length;
+            });
+
+            // Busca de contatos
+            document.getElementById('searchContacts').addEventListener('input', filterContacts);
+        }
+
+        async function loadContacts() {
+            document.getElementById('loading-contacts').style.display = 'block';
+            try {
+                const response = await fetch('/api/admin/contacts', {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                
+                allContacts = data.contacts.filter(c => c.source === 'database') || [];
+                
+                // Atualizar estatísticas
+                document.getElementById('totalContacts').textContent = allContacts.length;
+                document.getElementById('totalLeads').textContent = allContacts.filter(c => c.type === 'Lead').length;
+                document.getElementById('totalClients').textContent = allContacts.filter(c => c.type === 'Cliente').length;
+                
+                renderContacts(allContacts);
+            } catch (error) {
+                showAlert('alert-add', 'Erro ao carregar contatos: ' + error.message, 'error');
+            }
+            document.getElementById('loading-contacts').style.display = 'none';
+        }
+
+        async function loadOptInStats() {
+            try {
+                const filterType = document.getElementById('bulk_recipients')?.value;
+                const typeParam = filterType && filterType !== 'all' ? '?type=' + filterType : '';
+                
+                const response = await fetch('/api/admin/optin-stats' + typeParam, {
+                    credentials: 'include'
+                });
+                const stats = await response.json();
+                
+                document.getElementById('optInCount').textContent = stats.opted_in || 0;
+                document.getElementById('noOptInCount').textContent = stats.not_opted_in || 0;
+                document.getElementById('totalOptInStats').textContent = stats.total || 0;
+            } catch (error) {
+                console.error('Erro ao carregar estatísticas de opt-in:', error);
+            }
+        }
+
+        function renderContacts(contacts) {
+            const tbody = document.getElementById('contactsTableBody');
+            tbody.innerHTML = '';
+
+            if (contacts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #999;">Nenhum contato encontrado</td></tr>';
+                return;
+            }
+
+            contacts.forEach(contact => {
+                const typeBadge = contact.type === 'Lead' 
+                    ? '<span class="badge lead">Lead</span>'
+                    : '<span class="badge cliente">Cliente</span>';
+                
+                const optInBadge = contact.opt_in
+                    ? '<span style="color: green; font-weight: bold; cursor: pointer;" onclick="toggleOptIn(\'' + contact.phone + '\', false)" title="Clique para revogar">✅ Sim</span>'
+                    : '<span style="color: red; font-weight: bold; cursor: pointer;" onclick="toggleOptIn(\'' + contact.phone + '\', true)" title="Clique para ativar">❌ Não</span>';
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${contact.name || '-'}</strong></td>
+                    <td>${contact.phone || '-'}</td>
+                    <td>${contact.email || '-'}</td>
+                    <td>${typeBadge}</td>
+                    <td>${optInBadge}</td>
+                    <td>${contact.created_at || '-'}</td>
+                    <td>
+                        <button class="danger" onclick="deleteContact('${contact.phone}', '${contact.name}')">🗑️ Remover</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function filterContacts() {
+            const searchTerm = document.getElementById('searchContacts').value.toLowerCase();
+            const filtered = allContacts.filter(contact => {
+                const name = (contact.name || '').toLowerCase();
+                const phone = (contact.phone || '').toLowerCase();
+                const email = (contact.email || '').toLowerCase();
+                return name.includes(searchTerm) || phone.includes(searchTerm) || email.includes(searchTerm);
+            });
+            renderContacts(filtered);
+        }
+
+        async function addContact(e) {
+            e.preventDefault();
+            
+            const payload = {
+                nome: document.getElementById('add_nome').value,
+                telefone: document.getElementById('add_telefone').value,
+                email: document.getElementById('add_email').value,
+                tipo: document.getElementById('add_tipo').value,
+                opt_in: document.getElementById('add_opt_in').checked
+            };
+
+            try {
+                const response = await fetch('/api/admin/contacts/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    showAlert('alert-add', '✅ Contato adicionado com sucesso!', 'success');
+                    document.getElementById('addContactForm').reset();
+                    await loadContacts();
+                } else {
+                    showAlert('alert-add', '❌ ' + (result.message || 'Erro ao adicionar contato'), 'error');
+                }
+            } catch (error) {
+                showAlert('alert-add', '❌ Erro: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteContact(phone, name) {
+            if (!confirm(`Tem certeza que deseja remover ${name}?`)) return;
+
+            try {
+                const response = await fetch('/api/admin/contacts/delete', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ telefone: phone })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    showAlert('alert-add', '✅ Contato removido com sucesso!', 'success');
+                    await loadContacts();
+                } else {
+                    showAlert('alert-add', '❌ ' + (result.message || 'Erro ao remover contato'), 'error');
+                }
+            } catch (error) {
+                showAlert('alert-add', '❌ Erro: ' + error.message, 'error');
+            }
+        }
+
+        async function toggleOptIn(phone, newStatus) {
+            try {
+                const response = await fetch('/api/admin/contacts/update-optin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ 
+                        telefone: phone,
+                        opt_in: newStatus 
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    showAlert('alert-add', '✅ Opt-in atualizado com sucesso!', 'success');
+                    await loadContacts();
+                } else {
+                    showAlert('alert-add', '❌ ' + (result.message || 'Erro ao atualizar opt-in'), 'error');
+                }
+            } catch (error) {
+                showAlert('alert-add', '❌ Erro: ' + error.message, 'error');
+            }
+        }
+
+        async function sendBulkMessages(e) {
+            e.preventDefault();
+            
+            const message = document.getElementById('bulk_message').value;
+            const recipients = document.getElementById('bulk_recipients').value;
+
+            const payload = {
+                message: message,
+                send_to_all: recipients === 'all',
+                filter_by_type: recipients !== 'all' ? recipients : ''
+            };
+
+            const btn = e.target.querySelector('button');
+            btn.disabled = true;
+            btn.textContent = '📤 Enviando...';
+
+            try {
+                const response = await fetch('/api/bulk-message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                
+                if (response.ok && result.status === 'success') {
+                    showAlert('alert-bulk', `✅ ${result.message}`, 'success');
+                    document.getElementById('bulkMessageForm').reset();
+                    document.getElementById('charCount').textContent = '0';
+                } else {
+                    showAlert('alert-bulk', '❌ ' + (result.message || 'Erro ao enviar mensagens'), 'error');
+                }
+            } catch (error) {
+                showAlert('alert-bulk', '❌ Erro: ' + error.message, 'error');
+            }
+
+            btn.disabled = false;
+            btn.textContent = '🚀 Enviar Mensagens';
+        }
+
+        async function sendBulkTemplates(e) {
+            e.preventDefault();
+            
+            const templateName = document.getElementById('template_name').value;
+            const templateLanguage = document.getElementById('template_language').value;
+            const paramsInput = document.getElementById('template_params').value;
+            const recipients = document.getElementById('template_recipients').value;
+            const useContactName = document.getElementById('use_contact_name').checked;
+            const headerImageURL = document.getElementById('header_image_url').value.trim();
+
+            // Processar parâmetros (separados por vírgula)
+            const parameters = paramsInput.trim() ? paramsInput.split(',').map(p => p.trim()) : [];
+
+            const payload = {
+                template_name: templateName,
+                language: templateLanguage,
+                parameters: parameters,
+                use_contact_name: useContactName,
+                header_image_url: headerImageURL,
+                send_to_all: recipients === 'all' || recipients === 'Lead' || recipients === 'Cliente',
+                filter_by_type: recipients !== 'all' ? recipients : ''
+            };
+
+            const btn = e.target.querySelector('button');
+            btn.disabled = true;
+            btn.textContent = '📤 Enviando templates...';
+
+            try {
+                const response = await fetch('/api/bulk-template', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                
+                if (response.ok && result.status === 'success') {
+                    showAlert('alert-template', `✅ ${result.message}`, 'success');
+                    document.getElementById('templateMessageForm').reset();
+                } else {
+                    showAlert('alert-template', '❌ ' + (result.message || 'Erro ao enviar templates'), 'error');
+                }
+            } catch (error) {
+                showAlert('alert-template', '❌ Erro: ' + error.message, 'error');
+            }
+
+            btn.disabled = false;
+            btn.textContent = '📨 Enviar Templates';
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            if (tab === 'contacts') {
+                document.querySelector('[onclick="switchTab(\'contacts\')"]').classList.add('active');
+                document.getElementById('contacts-tab').classList.add('active');
+            } else {
+                document.querySelector('[onclick="switchTab(\'bulk\')"]').classList.add('active');
+                document.getElementById('bulk-tab').classList.add('active');
+            }
+        }
+
+        function showAlert(id, message, type) {
+            const alert = document.getElementById(id);
+            alert.textContent = message;
+            alert.className = `alert ${type} show`;
+            setTimeout(() => alert.classList.remove('show'), 5000);
+        }
+
+        async function logout() {
+            await fetch('/api/admin/logout', { 
+                method: 'POST',
+                credentials: 'include'
+            });
+            window.location.href = '/admin';
+        }
+    </script>
+</body>
+</html>

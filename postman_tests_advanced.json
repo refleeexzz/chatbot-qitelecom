@@ -1,0 +1,107 @@
+{
+  "info": {
+    "name": "QIBOT Chatbot Advanced Security Tests",
+    "_postman_id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "description": "Coleção de testes avançados de segurança para avaliar robustez contra várias categorias de ataque.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 - NoSQL Injection (simulada)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"message\": \"{ \n  \\\"$where\\\": \\\"sleep(5000)\\\" }\"\n}" },
+        "url": { "raw": "http://localhost:8081/chatbot", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["chatbot"] }
+      }
+    },
+    {
+      "name": "02 - Command Injection (simulada)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"message\": \"; ls -la / || dir \\; cat /etc/passwd\"\n}" },
+        "url": { "raw": "http://localhost:8081/chatbot", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["chatbot"] }
+      }
+    },
+    {
+      "name": "03 - Path Traversal (simulado)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"message\": \"../../../../etc/passwd\"\n}" },
+        "url": { "raw": "http://localhost:8081/chatbot", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["chatbot"] }
+      }
+    },
+    {
+      "name": "04 - LDAP Injection (simulada)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"message\": \"*)(|(user=*))\"\n}" },
+        "url": { "raw": "http://localhost:8081/chatbot", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["chatbot"] }
+      }
+    },
+    {
+      "name": "05 - XML External Entity (XXE) (simulada)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"message\": \"<?xml version=\\\"1.0\\\"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM 'file:///etc/passwd'>]><foo>&xxe;</foo>\"\n}" },
+        "url": { "raw": "http://localhost:8081/chatbot", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["chatbot"] }
+      }
+    },
+    {
+      "name": "06 - HTTP Header Injection (simulada)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Custom", "value": "teste\nX-Injected: valor" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"message\": \"Teste header injection\"\n}" },
+        "url": { "raw": "http://localhost:8081/chatbot", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["chatbot"] }
+      }
+    },
+    {
+      "name": "07 - CRLF Injection (simulada)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"message\": \"Primeira linha%0d%0aSet-Cookie: sess=malicioso\"\n}" },
+        "url": { "raw": "http://localhost:8081/chatbot", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["chatbot"] }
+      }
+    },
+    {
+      "name": "08 - Rate Limit (10 rápidas)",
+      "event": [ {
+        "listen": "prerequest",
+        "script": { "exec": ["// Executa várias requisições rapidamente via runner para observar comportamento."], "type": "text/javascript" }
+      } ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"message\": \"Teste rate limit\"\n}" },
+        "url": { "raw": "http://localhost:8081/chatbot", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["chatbot"] }
+      }
+    },
+    {
+      "name": "09 - Unicode Confusables / Homoglyphs",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"message\": \"Реѕроηѕа = teste (caracteres parecidos)\"\n}" },
+        "url": { "raw": "http://localhost:8081/chatbot", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["chatbot"] }
+      }
+    },
+    {
+      "name": "10 - Buffer Overflow (simulado com string muito grande)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"message\": \"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\"\n}" },
+        "url": { "raw": "http://localhost:8081/chatbot", "protocol": "http", "host": ["localhost"], "port": "8081", "path": ["chatbot"] }
+      }
+    }
+  ]
+}

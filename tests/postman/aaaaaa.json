@@ -1,0 +1,345 @@
+{
+  "info": {
+    "_postman_id": "b6c1d9d0-0000-4d11-aaaa-qi-chatbot",
+    "name": "QI Chatbot",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Fluxos de teste do Chatbot QI TELECOM"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET Health",
+            "request": {
+              "method": "GET",
+              "header": [],
+              "url": "{{baseUrl}}/health"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "pm.test('Status 200', ()=> pm.response.code === 200);"
+                  ],
+                  "type": "text/javascript"
+                }
+              }
+            ]
+        }
+      ]
+    },
+    {
+      "name": "Menu",
+      "item": [
+        {
+          "name": "Menu Inicial (oi)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{user_id}}\",\n  \"message\": \"oi\"\n}"
+            },
+            "url": "{{baseUrl}}/chatbot"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json();",
+                  "pm.test('Tem menu', () => ['[1]','[2]','[3]','[4]'].every(o=>r.response.includes(o)));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Menu (MENU)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{user_id}}\",\n  \"message\": \"MENU\"\n}"
+            },
+            "url": "{{baseUrl}}/chatbot"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Suporte (Happy Path)",
+      "item": [
+        {
+          "name": "1 - Seleciona Suporte",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json"}],
+            "body": { "mode": "raw", "raw": "{ \"user_id\": \"{{user_id}}\", \"message\": \"1\" }" },
+            "url": "{{baseUrl}}/chatbot"
+          }
+        },
+        {
+          "name": "2 - Nome",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json"}],
+            "body": { "mode": "raw", "raw": "{ \"user_id\": \"{{user_id}}\", \"message\": \"Joao Silva\" }" },
+            "url": "{{baseUrl}}/chatbot"
+          }
+        },
+        {
+          "name": "3 - Descreve Problema",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json"}],
+            "body": { "mode": "raw", "raw": "{ \"user_id\": \"{{user_id}}\", \"message\": \"Internet cai a noite\" }" },
+            "url": "{{baseUrl}}/chatbot"
+          }
+        },
+        {
+          "name": "4 - Tentativa 1 -> SIM (Resolve)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json"}],
+            "body": { "mode": "raw", "raw": "{ \"user_id\": \"{{user_id}}\", \"message\": \"SIM\" }" },
+            "url": "{{baseUrl}}/chatbot"
+          }
+        },
+        {
+          "name": "5 - Feedback Avaliação",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json"}],
+            "body": { "mode": "raw", "raw": "{ \"user_id\": \"{{user_id}}\", \"message\": \"Muito bom\" }" },
+            "url": "{{baseUrl}}/chatbot"
+          }
+        },
+        {
+          "name": "6 - Feedback Sugestão",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json"}],
+            "body": { "mode": "raw", "raw": "{ \"user_id\": \"{{user_id}}\", \"message\": \"Melhorar tempo de resposta\" }" },
+            "url": "{{baseUrl}}/chatbot"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Suporte (Escalonamento)",
+      "item": [
+        {
+          "name": "Fluxo até escalonar (NÃO x5)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type","value": "application/json"}],
+            "body": { "mode": "raw", "raw": "{ \"user_id\": \"{{user_id2}}\", \"message\": \"NÃO\" }" },
+            "url": "{{baseUrl}}/chatbot"
+          },
+          "description": "Repita 5 vezes após iniciar suporte."
+        }
+      ]
+    },
+    {
+      "name": "Planos (Cliente Atual)",
+      "item": [
+        {
+          "name": "1 - Planos",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type","value":"application/json"}],
+            "body": { "mode":"raw", "raw":"{ \"user_id\": \"{{user_id}}\", \"message\": \"2\" }" },
+            "url": "{{baseUrl}}/chatbot"
+          }
+        },
+        {
+          "name": "2 - Sou Cliente (SIM)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type","value":"application/json"}],
+            "body": { "mode":"raw", "raw":"{ \"user_id\": \"{{user_id}}\", \"message\": \"SIM\" }" },
+            "url": "{{baseUrl}}/chatbot"
+          }
+        },
+        {
+          "name": "3 - Plano Atual",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type","value":"application/json"}],
+            "body": { "mode":"raw", "raw":"{ \"user_id\": \"{{user_id}}\", \"message\": \"QI FIBRA PREMIUM (MELHOR)\" }" },
+            "url": "{{baseUrl}}/chatbot"
+          }
+        },
+        {
+          "name": "4 - Novo Plano (Upgrade)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type","value":"application/json"}],
+            "body": { "mode":"raw", "raw":"{ \"user_id\": \"{{user_id}}\", \"message\": \"QI FIBRA PREMIUM TOP\" }" },
+            "url": "{{baseUrl}}/chatbot"
+          }
+        },
+        {
+          "name": "5 - Nome Confirmação",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type","value":"application/json"}],
+            "body": { "mode":"raw", "raw":"{ \"user_id\": \"{{user_id}}\", \"message\": \"Joao Silva\" }" },
+            "url": "{{baseUrl}}/chatbot"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Planos (Novo Cliente)",
+      "item": [
+        {
+          "name": "1 - Planos",
+          "request": {
+            "method":"POST",
+            "header":[{ "key":"Content-Type","value":"application/json"}],
+            "body": { "mode":"raw","raw":"{ \"user_id\": \"{{user_id2}}\", \"message\": \"2\" }" },
+            "url":"{{baseUrl}}/chatbot"
+          }
+        },
+        {
+          "name": "2 - NÃO Sou Cliente",
+          "request": {
+            "method":"POST",
+            "header":[{ "key":"Content-Type","value":"application/json"}],
+            "body": { "mode":"raw","raw":"{ \"user_id\": \"{{user_id2}}\", \"message\": \"NÃO\" }" },
+            "url":"{{baseUrl}}/chatbot"
+          }
+        },
+        {
+          "name": "3 - Escolhe Plano",
+          "request": {
+            "method":"POST",
+            "header":[{ "key":"Content-Type","value":"application/json"}],
+            "body": { "mode":"raw","raw":"{ \"user_id\": \"{{user_id2}}\", \"message\": \"QI FIBRA BASIC\" }" },
+            "url":"{{baseUrl}}/chatbot"
+          }
+        },
+        {
+          "name": "4 - Nome",
+          "request": {
+            "method":"POST",
+            "header":[{ "key":"Content-Type","value":"application/json"}],
+            "body": { "mode":"raw","raw":"{ \"user_id\": \"{{user_id2}}\", \"message\": \"Maria Souza\" }" },
+            "url":"{{baseUrl}}/chatbot"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Assistente Livre",
+      "item": [
+        {
+          "name": "Entrar Assistente Livre",
+          "request": {
+            "method":"POST",
+            "header":[{ "key":"Content-Type","value":"application/json"}],
+            "body": { "mode":"raw","raw":"{ \"user_id\": \"{{user_id}}\", \"message\": \"4\" }" },
+            "url":"{{baseUrl}}/chatbot"
+          }
+        },
+        {
+          "name": "Pergunta Livre",
+          "request": {
+            "method":"POST",
+            "header":[{ "key":"Content-Type","value":"application/json"}],
+            "body": { "mode":"raw","raw":"{ \"user_id\": \"{{user_id}}\", \"message\": \"Qual velocidade para 4K?\" }" },
+            "url":"{{baseUrl}}/chatbot"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Financeiro",
+      "item": [
+        {
+          "name": "Boleto e Financeiro",
+          "request": {
+            "method":"POST",
+            "header":[{ "key":"Content-Type","value":"application/json"}],
+            "body": { "mode":"raw","raw":"{ \"user_id\": \"{{user_id}}\", \"message\": \"3\" }" },
+            "url":"{{baseUrl}}/chatbot"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Feedback",
+      "item": [
+        {
+          "name": "Avaliação Depois Suporte",
+          "request": {
+            "method":"POST",
+            "header":[{ "key":"Content-Type","value":"application/json"}],
+            "body": { "mode":"raw","raw":"{ \"user_id\": \"{{user_id}}\", \"message\": \"Ótimo\" }" },
+            "url":"{{baseUrl}}/chatbot"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Erros & Edge Cases",
+      "item": [
+        {
+          "name": "Opção Inválida",
+          "request": {
+            "method":"POST",
+            "header":[{ "key":"Content-Type","value":"application/json"}],
+            "body": { "mode":"raw","raw":"{ \"user_id\": \"{{user_id}}\", \"message\": \"9\" }" },
+            "url":"{{baseUrl}}/chatbot"
+          }
+        },
+        {
+          "name": "Mensagem Vazia",
+          "request": {
+            "method":"POST",
+            "header":[{ "key":"Content-Type","value":"application/json"}],
+            "body": { "mode":"raw","raw":"{ \"user_id\": \"{{user_id}}\", \"message\": \"\" }" },
+            "url":"{{baseUrl}}/chatbot"
+          }
+        },
+        {
+          "name": "HTML Injection",
+          "request": {
+            "method":"POST",
+            "header":[{ "key":"Content-Type","value":"application/json"}],
+            "body": { "mode":"raw","raw":"{ \"user_id\": \"{{user_id}}\", \"message\": \"<script>alert(1)</script>\" }" },
+            "url":"{{baseUrl}}/chatbot"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sessão",
+      "item": [
+        {
+          "name": "Forçar Menu (MENU)",
+          "request": {
+            "method":"POST",
+            "header":[{ "key":"Content-Type","value":"application/json"}],
+            "body": { "mode":"raw","raw":"{ \"user_id\": \"{{user_id}}\", \"message\": \"MENU\" }" },
+            "url":"{{baseUrl}}/chatbot"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8081" }
+  ]
+}

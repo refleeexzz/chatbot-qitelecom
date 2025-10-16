@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Contatos - QIBOT</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .stat-card h3 {
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .number {
+            color: #667eea;
+            font-size: 36px;
+            font-weight: 700;
+        }
+
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 10px 20px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .filter-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #f8f9fa;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+            color: #555;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge.database {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge.redis {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge.lead {
+            background: #cfe2ff;
+            color: #084298;
+        }
+
+        .badge.cliente {
+            background: #e2d4f7;
+            color: #5a2d82;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .refresh-btn:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Painel de Contatos</h1>
+            <p style="color: #666; margin-top: 5px;">Visualize todos os contatos do banco de dados e Redis</p>
+        </header>
+
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <h3>Total de Contatos</h3>
+                <div class="number" id="totalContacts">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>No Banco de Dados</h3>
+                <div class="number" id="dbContacts">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>No Redis (Cache)</h3>
+                <div class="number" id="redisKeys">-</div>
+            </div>
+        </div>
+
+        <button class="refresh-btn" onclick="loadContacts()">🔄 Atualizar</button>
+
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">Todos</button>
+            <button class="filter-btn" data-filter="database">Banco de Dados</button>
+            <button class="filter-btn" data-filter="redis">Redis</button>
+            <button class="filter-btn" data-filter="Lead">Leads</button>
+            <button class="filter-btn" data-filter="Cliente">Clientes</button>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Buscar por telefone, nome ou email...">
+            </div>
+        </div>
+
+        <div class="table-container">
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Carregando contatos...</p>
+            </div>
+
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                </svg>
+                <h3>Nenhum contato encontrado</h3>
+                <p>Não há contatos cadastrados ainda.</p>
+            </div>
+
+            <table id="contactsTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Telefone</th>
+                        <th>Nome</th>
+                        <th>Email</th>
+                        <th>Tipo</th>
+                        <th>Origem</th>
+                        <th>Data/Atividade</th>
+                    </tr>
+                </thead>
+                <tbody id="contactsBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let allContacts = [];
+        let currentFilter = 'all';
+
+        // Carregar contatos ao iniciar
+        document.addEventListener('DOMContentLoaded', () => {
+            loadContacts();
+            setupFilters();
+            setupSearch();
+        });
+
+        async function loadContacts() {
+            const loading = document.getElementById('loading');
+            const table = document.getElementById('contactsTable');
+            const emptyState = document.getElementById('emptyState');
+
+            loading.style.display = 'block';
+            table.style.display = 'none';
+            emptyState.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/admin/contacts');
+                const data = await response.json();
+
+                allContacts = data.contacts || [];
+
+                // Atualizar estatísticas
+                document.getElementById('totalContacts').textContent = data.total_contacts || 0;
+                document.getElementById('dbContacts').textContent = data.database_contacts || 0;
+                document.getElementById('redisKeys').textContent = data.redis_keys || 0;
+
+                if (allContacts.length === 0) {
+                    loading.style.display = 'none';
+                    emptyState.style.display = 'block';
+                } else {
+                    renderContacts(allContacts);
+                    loading.style.display = 'none';
+                    table.style.display = 'table';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar contatos:', error);
+                loading.innerHTML = '<p style="color: red;">❌ Erro ao carregar contatos. Tente novamente.</p>';
+            }
+        }
+
+        function renderContacts(contacts) {
+            const tbody = document.getElementById('contactsBody');
+            tbody.innerHTML = '';
+
+            contacts.forEach(contact => {
+                const row = document.createElement('tr');
+                
+                const sourceBadge = contact.source === 'database' 
+                    ? '<span class="badge database">Banco</span>'
+                    : '<span class="badge redis">Redis</span>';
+
+                let typeBadge = '';
+                if (contact.type) {
+                    const typeClass = contact.type.toLowerCase().includes('lead') ? 'lead' : 'cliente';
+                    typeBadge = `<span class="badge ${typeClass}">${contact.type}</span>`;
+                }
+
+                row.innerHTML = `
+                    <td><strong>${contact.phone || '-'}</strong></td>
+                    <td>${contact.name || '-'}</td>
+                    <td>${contact.email || '-'}</td>
+                    <td>${typeBadge || '-'}</td>
+                    <td>${sourceBadge}</td>
+                    <td>${contact.created_at || contact.last_active || '-'}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        function setupFilters() {
+            const filterBtns = document.querySelectorAll('.filter-btn');
+            
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    filterBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    currentFilter = btn.dataset.filter;
+                    applyFilters();
+                });
+            });
+        }
+
+        function setupSearch() {
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', applyFilters);
+        }
+
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            let filtered = allContacts.filter(contact => {
+                // Filtro de categoria
+                if (currentFilter !== 'all') {
+                    if (currentFilter === 'database' && contact.source !== 'database') return false;
+                    if (currentFilter === 'redis' && contact.source !== 'redis') return false;
+                    if (currentFilter === 'Lead' && contact.type !== 'Lead') return false;
+                    if (currentFilter === 'Cliente' && contact.type !== 'Cliente') return false;
+                }
+
+                // Filtro de busca
+                if (searchTerm) {
+                    const phone = (contact.phone || '').toLowerCase();
+                    const name = (contact.name || '').toLowerCase();
+                    const email = (contact.email || '').toLowerCase();
+                    
+                    return phone.includes(searchTerm) || 
+                           name.includes(searchTerm) || 
+                           email.includes(searchTerm);
+                }
+
+                return true;
+            });
+
+            renderContacts(filtered);
+        }
+    </script>
+</body>
+</html>

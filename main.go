@@ -1,5 +1,6 @@
 package main
 
+// Version: 2.0 - Template support added
 import (
 	"context"
 	"database/sql"
@@ -24,14 +25,16 @@ import (
 	httptrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/net/http"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
+
 func main() {
 	// 📋 Configurar logging
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	zerologlog.Logger = zerologlog.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
-	// 🔑 Carregar variáveis de ambiente
-	if err := godotenv.Load("C:/Users/Uaurio/Documents/LEADPROJECT/.env"); err != nil {
-		zerologlog.Warn().Err(err).Msg("Arquivo .env não encontrado, usando variáveis de ambiente do sistema")
+	// 🔑 Carregar variáveis de ambiente (carrega .env do diretório atual se existir)
+	if err := godotenv.Load(); err != nil {
+		// não é erro crítico em containers; pode usar variáveis passadas pelo Docker
+		zerologlog.Debug().Err(err).Msg("Arquivo .env não encontrado no diretório atual; usando variáveis de ambiente do sistema")
 	}
 
 	// ▶️ Iniciar Datadog tracer (APM)
@@ -63,7 +66,7 @@ func main() {
 	if err != nil {
 		zerologlog.Fatal().Err(err).Msg("Erro ao configurar Google Sheets")
 	}
-	
+
 	// 🤖 Configurar cliente IA Gemini
 	aiClient, err := ai.NewClient()
 	if err != nil {
@@ -81,9 +84,12 @@ func main() {
 
 	// 🚪 Configurar handlers
 	chatbotHandler := handlers.NewChatbotHandler(chatbotService)
+	bulkMessageHandler := handlers.NewBulkMessageHandler(db)
+	adminHandler := handlers.NewAdminHandler(db, redisClient)
+	authHandler := handlers.NewAuthHandler()
 
 	// 🌐 Configurar rotas
-	setupRoutes(chatbotHandler)
+	setupRoutes(chatbotHandler, bulkMessageHandler, adminHandler, authHandler, db, redisClient)
 
 	// 🚀 Iniciar servidor
 	startServer()
@@ -103,11 +109,19 @@ func setupDatabase() (*sql.DB, error) {
 			telefone TEXT,
 			email TEXT,
 			tipo TEXT DEFAULT 'Lead',
+			opt_in BOOLEAN DEFAULT 0 NOT NULL,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)
 	`)
 	if err != nil {
 		return nil, err
+	}
+
+	// Adicionar coluna opt_in se a tabela já existir (para bancos de dados existentes)
+	_, err = db.Exec(`ALTER TABLE leads ADD COLUMN opt_in BOOLEAN DEFAULT 0 NOT NULL`)
+	if err != nil {
+		// Ignora erro se a coluna já existir
+		zerologlog.Debug().Err(err).Msg("Coluna opt_in já existe ou erro ao adicionar")
 	}
 
 	return db, nil
@@ -141,7 +155,7 @@ func setupRedis() *redis.Client {
 	return client
 }
 
-func setupRoutes(chatbotHandler *handlers.ChatbotHandler) {
+func setupRoutes(chatbotHandler *handlers.ChatbotHandler, bulkMessageHandler *handlers.BulkMessageHandler, adminHandler *handlers.AdminHandler, authHandler *handlers.AuthHandler, db *sql.DB, redisClient *redis.Client) {
 	cfg := security.LoadConfig()
 	rl := security.NewGlobalRateLimiter(cfg.RatePerMinute)
 
@@ -151,11 +165,57 @@ func setupRoutes(chatbotHandler *handlers.ChatbotHandler) {
 
 	http.Handle("/chatbot", security.WrapHandler(tracedChatbot, cfg, rl))
 	http.Handle("/health", security.WrapHandler(tracedHealth, cfg, rl))
-	http.HandleFunc("/", chatbotHandler.HandleStatic) // página estática sem wrappers
+
+	// Admin routes - protected (require login)
+	http.HandleFunc("/api/admin/contacts", handlers.VerifyAdminToken(adminHandler.HandleGetContacts))
+	http.HandleFunc("/api/admin/contacts/add", handlers.VerifyAdminToken(adminHandler.HandleAddContact))
+	http.HandleFunc("/api/admin/contacts/delete", handlers.VerifyAdminToken(adminHandler.HandleDeleteContact))
+	http.HandleFunc("/api/admin/contacts/update-optin", handlers.VerifyAdminToken(adminHandler.HandleUpdateOptIn))
+	http.HandleFunc("/api/admin/optin-stats", handlers.VerifyAdminToken(bulkMessageHandler.HandleGetOptInStats))
+
+	// Bulk message routes - PROTECTED (authentication check inline in handlers)
+	http.HandleFunc("/api/bulk-message", bulkMessageHandler.HandleBulkMessage)
+	http.HandleFunc("/api/bulk-template", bulkMessageHandler.HandleBulkTemplateMessage)
+
+	// Auth routes
+	http.HandleFunc("/api/admin/login", authHandler.HandleLogin)
+	http.HandleFunc("/api/admin/logout", authHandler.HandleLogout)
+
+	// Static pages
+	http.HandleFunc("/bulk-messages", bulkMessageHandler.HandleBulkMessagePage) // Página HTML disparos
+	http.HandleFunc("/admin/contacts", adminHandler.HandleAdminPage)            // Página HTML admin antiga
+	http.HandleFunc("/admin", handleAdminDashboard)                             // Página unificada com login
+	http.HandleFunc("/", chatbotHandler.HandleStatic)                           // página estática sem wrappers
 
 	// WhatsApp webhook handler
 	whatsappHandler := handlers.NewWhatsAppWebhookHandler(chatbotHandler.Service())
 	http.HandleFunc("/webhook/whatsapp", whatsappHandler.HandleWhatsAppWebhook)
+} // handleAdminDashboard serve a página unificada de admin ou redireciona para login
+func handleAdminDashboard(w http.ResponseWriter, r *http.Request) {
+	// Verificar se tem cookie de auth válido
+	cookie, err := r.Cookie("admin_token")
+	if err != nil || cookie.Value == "" {
+		// Não autenticado - mostrar página de login
+		http.ServeFile(w, r, "admin_login.html")
+		return
+	}
+
+	// Validar formato do token (deve começar com "admin_")
+	if len(cookie.Value) < 10 || cookie.Value[:6] != "admin_" {
+		// Token inválido - limpar cookie e mostrar login
+		http.SetCookie(w, &http.Cookie{
+			Name:     "admin_token",
+			Value:    "",
+			Path:     "/",
+			MaxAge:   -1,
+			HttpOnly: true,
+		})
+		http.ServeFile(w, r, "admin_login.html")
+		return
+	}
+
+	// Autenticado - mostrar dashboard
+	http.ServeFile(w, r, "admin_dashboard.html")
 }
 
 func startServer() {

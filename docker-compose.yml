@@ -1,22 +1,60 @@
+version: "3.8"
+
 services:
+
   qibot:
     build: .
     container_name: qibot
-    ports:
-      - "8081:8081"
-    environment:
-      GOOGLE_API_KEY: "your_google_api_key"
-      REDIS_ADDR: redis:6379
-    volumes:
-      - ./credentials.json:/app/credentials.json:ro
-      - ./leads.db:/app/leads.db
-    restart: unless-stopped
     depends_on:
       - redis
+    ports:
+      - "8081:8081"
+    env_file:
+      - .env
+    # Prefer loading all variables from .env via env_file. Use explicit environment
+    # entries only for values that must be overridden or to map service hostnames.
+    environment:
+      # Use the redis service hostname so the app connects to the redis container
+      REDIS_HOST: redis
+      # If your app expects a single address variable, you can set it too
+      REDIS_ADDR: redis:6379
+      # Pass through other values from .env (allow docker-compose to substitute)
+      PORT: "${PORT}"
+      BODY_LIMIT_BYTES: "${BODY_LIMIT_BYTES}"
+      RATE_LIMIT_PER_MINUTE: "${RATE_LIMIT_PER_MINUTE}"
+      ADMIN_USERNAME: "${ADMIN_USERNAME}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD}"
+    volumes:
+      - ./credentials.json:/app/credentials.json:ro
+      # Volume nomeado para persistir o banco de dados SQLite
+      - qibot_db:/app
+      # Arquivos HTML - mapeamento direto para desenvolvimento
+      - ./index.html:/app/index.html:ro
+      - ./admin_login.html:/app/admin_login.html:ro
+      - ./admin_dashboard.html:/app/admin_dashboard.html:ro
+      - ./admin_contacts.html:/app/admin_contacts.html:ro
+      - ./bulk_messages.html:/app/bulk_messages.html:ro
+    labels:
+      com.datadoghq.ad.logs: '[{"source": "go", "service": "qibot-chatbot"}]'
+    restart: unless-stopped
+    networks:
+      - qibot-network
 
   redis:
     image: redis:7-alpine
     container_name: redis
     ports:
       - "6379:6379"
+    volumes:
+      - redis_data:/data
     restart: unless-stopped
+    networks:
+      - qibot-network
+
+volumes:
+  redis_data:
+  qibot_db:  # Volume para persistir banco SQLite
+
+networks:
+  qibot-network:
+    driver: bridge

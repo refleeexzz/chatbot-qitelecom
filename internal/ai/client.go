@@ -28,7 +28,15 @@ func NewClient() (*Client, error) {
 		return nil, fmt.Errorf("erro ao criar cliente Gemini: %w", err)
 	}
 
-	model := client.GenerativeModel("gemini-1.5-flash")
+	// Permite sobrescrever o modelo via variável de ambiente GENERATIVE_MODEL
+	modelName := os.Getenv("GENERATIVE_MODEL")
+	if modelName == "" {
+		modelName = "gemini-1.5-flash"
+	}
+
+	log.Printf("Usando modelo Gemini: %s", modelName)
+
+	model := client.GenerativeModel(modelName)
 
 	return &Client{model: model}, nil
 }

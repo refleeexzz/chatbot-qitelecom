@@ -1,4 +1,4 @@
-// Package security implementa middlewares de segurança e rate limiting para handlers HTTP.		
+// Package security implementa middlewares de segurança e rate limiting para handlers HTTP.
 package security
 
 import (
@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -15,7 +16,7 @@ type rateLimiter struct {
 	mu       sync.Mutex
 	counts   map[string]int
 	resetAt  time.Time
-	limit    int
+	limit    int	
 	interval time.Duration
 }
 
@@ -77,15 +78,26 @@ func LoadConfig() SecurityConfig {
 // WrapHandler aplica body limit, rate limiting e headers de segurança ao handler HTTP.
 func WrapHandler(h http.Handler, cfg SecurityConfig, rl *rateLimiter) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r.Body = http.MaxBytesReader(w, r.Body, int64(cfg.BodyLimitBytes))
+		// Verificar se é webhook da Meta (WhatsApp/Facebook)
+		isMetaWebhook := isMetaWebhookRequest(r)
 
-		ip, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			ip = r.RemoteAddr
+		// Body limit diferenciado: webhooks da Meta podem ter payloads maiores
+		if isMetaWebhook {
+			r.Body = http.MaxBytesReader(w, r.Body, int64(cfg.BodyLimitBytes*4)) // 4x maior para Meta
+		} else {
+			r.Body = http.MaxBytesReader(w, r.Body, int64(cfg.BodyLimitBytes))
 		}
-		if !rl.allow(ip) {
-			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
-			return
+
+		// Rate limiting apenas para requisições que não são da Meta
+		if !isMetaWebhook {
+			ip, _, err := net.SplitHostPort(r.RemoteAddr)
+			if err != nil {
+				ip = r.RemoteAddr
+			}
+			if !rl.allow(ip) {
+				http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
+				return
+			}
 		}
 
 		w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -96,4 +108,24 @@ func WrapHandler(h http.Handler, cfg SecurityConfig, rl *rateLimiter) http.Handl
 
 		h.ServeHTTP(w, r)
 	})
+}
+
+// isMetaWebhookRequest verifica se a requisição é um webhook da Meta/WhatsApp.
+// Checa User-Agent e presença de assinatura X-Hub-Signature-256.
+func isMetaWebhookRequest(r *http.Request) bool {
+	// Verificar path do webhook
+	if strings.HasPrefix(r.URL.Path, "/webhook/whatsapp") {
+		return true
+	}
+
+	// Verificar User-Agent da Meta
+	userAgent := strings.ToLower(r.Header.Get("User-Agent"))
+	if strings.Contains(userAgent, "facebookexternalua") ||
+		strings.Contains(userAgent, "whatsapp") {
+		return true
+	}
+
+	// Verificar assinatura X-Hub-Signature-256 (presente em webhooks da Meta)
+	signature := r.Header.Get("X-Hub-Signature-256")
+	return signature != ""
 }
