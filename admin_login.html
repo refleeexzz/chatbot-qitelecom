@@ -180,15 +180,10 @@
                 });
 
                 const result = await response.json();
-                console.log('Login response:', result);
 
-                if (result.success) {
-                    console.log('✅ Login sucesso! Cookie deve estar salvo:', document.cookie);
-                    // Pequeno delay para garantir que o cookie foi salvo pelo navegador
-                    setTimeout(() => {
-                        console.log('Redirecionando para /admin agora...');
-                        window.location.replace('/admin'); // replace força um reload completo
-                    }, 200);
+                if (response.ok && result.success) {
+                    // Login bem-sucedido - redirecionar imediatamente
+                    window.location.href = '/admin';
                 } else {
                     showAlert('❌ ' + (result.message || 'Usuário ou senha incorretos'), true);
                     loginBtn.disabled = false;

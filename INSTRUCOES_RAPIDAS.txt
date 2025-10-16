@@ -1,0 +1,65 @@
+╔══════════════════════════════════════════════════════════════════╗
+║           QIBOT - ACESSO EM REDE LOCAL - GUIA RÁPIDO            ║
+╚══════════════════════════════════════════════════════════════════╝
+
+📍 IP DO SERVIDOR: 192.168.0.13
+🔌 PORTA: 8081
+
+═══════════════════════════════════════════════════════════════════
+
+🚀 PASSO A PASSO:
+
+1️⃣ LIBERAR FIREWALL (NECESSÁRIO APENAS 1 VEZ)
+   
+   → Clique com BOTÃO DIREITO em "liberar-firewall.bat"
+   → Escolha "Executar como Administrador"
+   → Aguarde a confirmação
+
+
+2️⃣ VERIFICAR SE ESTÁ FUNCIONANDO
+
+   → Execute "testar-conexao.bat"
+   → Deve aparecer "Status HTTP: 200"
+
+
+3️⃣ ACESSAR DE OUTRO COMPUTADOR
+
+   → Abra o navegador no OUTRO PC (mesma rede)
+   → Digite: http://192.168.0.13:8081
+   → Pronto! ✅
+
+═══════════════════════════════════════════════════════════════════
+
+🔗 PÁGINAS DISPONÍVEIS:
+
+   Página Inicial:
+   http://192.168.0.13:8081
+
+   Login Admin:
+   http://192.168.0.13:8081/admin_login.html
+
+   Dashboard:
+   http://192.168.0.13:8081/admin_dashboard.html
+
+   Disparos em Lote:
+   http://192.168.0.13:8081/bulk_messages.html
+
+═══════════════════════════════════════════════════════════════════
+
+🔐 CREDENCIAIS:
+
+   Usuário: QItelecom
+   Senha: @Redeqi.com.br
+
+═══════════════════════════════════════════════════════════════════
+
+❓ NÃO ESTÁ FUNCIONANDO?
+
+   ✓ Execute "liberar-firewall.bat" como ADMINISTRADOR
+   ✓ Verifique se ambos os PCs estão na MESMA rede Wi-Fi
+   ✓ Confirme que o Docker está rodando: docker-compose ps
+   ✓ Teste localmente primeiro: http://localhost:8081
+
+═══════════════════════════════════════════════════════════════════
+
+📞 Desenvolvido por Kauan Botura - QITelecom
