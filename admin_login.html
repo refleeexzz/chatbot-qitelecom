@@ -156,7 +156,7 @@
 
     <script>
         const form = document.getElementById('loginForm');
-        const alert = document.getElementById('alert');
+        const alertBox = document.getElementById('alert');
         const loginBtn = document.getElementById('loginBtn');
 
         form.addEventListener('submit', async (e) => {
@@ -206,12 +206,12 @@
         });
 
         function showAlert(message, isError) {
-            alert.textContent = message;
-            alert.className = 'alert ' + (isError ? 'error' : 'success') + ' show';
+            alertBox.textContent = message;
+            alertBox.className = 'alert ' + (isError ? 'error' : 'success') + ' show';
         }
 
         function hideAlert() {
-            alert.classList.remove('show');
+            alertBox.classList.remove('show');
         }
     </script>
 </body>
