@@ -182,11 +182,15 @@
                 const result = await response.json();
                 console.log('Login response:', result);
                 console.log('Response headers:', response.headers);
+                console.log('Cookies após login:', document.cookie);
 
                 if (result.success) {
                     showAlert('✅ Login bem-sucedido! Redirecionando...', false);
+                    console.log('Redirecionando para /admin em 500ms...');
+                    console.log('Cookies antes de redirecionar:', document.cookie);
                     // Redirecionar para o painel de administração
                     setTimeout(() => {
+                        console.log('Executando redirecionamento agora!');
                         window.location.href = '/admin';
                     }, 500);
                 } else {
