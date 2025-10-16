@@ -3,221 +3,176 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Admin - QIBOT</title>
+    <title>QIBOT - Painel Administrativo</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --qi-primary: #0066CC;
+            --qi-secondary: #004C99;
+            --qi-accent: #00A3E0;
+            --qi-dark: #002B5C;
+            --qi-light: #E6F2FF;
+        }
+        body { background: #f8f9fa; font-family: system-ui; }
+        .navbar { background: linear-gradient(135deg, var(--qi-primary), var(--qi-secondary))!important; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .nav-tabs .nav-link { color: #6c757d; border: none; padding: 12px 24px; }
+        .nav-tabs .nav-link.active { color: var(--qi-primary); border-bottom: 3px solid var(--qi-primary); background: transparent; }
+        .card { border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 12px; margin-bottom: 24px; }
+        .stat-card { background: linear-gradient(135deg, var(--qi-primary), var(--qi-accent)); color: white; }
+        .btn-primary { background: var(--qi-primary); border: none; }
+        .btn-primary:hover { background: var(--qi-secondary); }
+        .modal-header { background: var(--qi-light); border-bottom: 2px solid var(--qi-primary); }
+    </style>
 </head>
 <body>
-    <nav class="navbar navbar-dark bg-primary">
+    <nav class="navbar navbar-dark mb-4">
         <div class="container-fluid">
-            <span class="navbar-brand mb-0 h1"> QIBOT - Painel Admin</span>
+            <span class="navbar-brand mb-0 h1"><i class="bi bi-robot"></i> QIBOT - QI Telecom</span>
             <div class="d-flex align-items-center text-white">
-                <span class="me-3" id="username"></span>
-                <button class="btn btn-outline-light btn-sm" onclick="logout()">Sair</button>
+                <span class="me-3"><i class="bi bi-person-circle"></i> <span id="username"></span></span>
+                <button class="btn btn-outline-light btn-sm" onclick="logout()"><i class="bi bi-box-arrow-right"></i> Sair</button>
             </div>
         </div>
     </nav>
-
-    <div class="container-fluid mt-4">
-        <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button"> Dashboard</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="contacts-tab" data-bs-toggle="tab" data-bs-target="#contacts" type="button"> Contatos</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="bulk-tab" data-bs-toggle="tab" data-bs-target="#bulk" type="button"> Mensagens em Massa</button>
-            </li>
+    <div class="container-fluid">
+        <ul class="nav nav-tabs mb-4" role="tablist">
+            <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#dashboard"><i class="bi bi-speedometer2"></i> Dashboard</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#contacts"><i class="bi bi-people"></i> Contatos</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#bulk"><i class="bi bi-send"></i> Enviar Mensagens</button></li>
         </ul>
-
-        <div class="tab-content" id="adminTabContent">
-            <!-- Dashboard -->
-            <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="dashboard">
                 <div class="row g-3">
-                    <div class="col-md-4">
-                        <div class="card text-white bg-primary">
-                            <div class="card-body">
-                                <h5 class="card-title">Total de Contatos</h5>
-                                <h2 id="totalContacts">0</h2>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card text-white bg-success">
-                            <div class="card-body">
-                                <h5 class="card-title">Com Opt-in</h5>
-                                <h2 id="optInContacts">0</h2>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card text-white bg-info">
-                            <div class="card-body">
-                                <h5 class="card-title">Mensagens Hoje</h5>
-                                <h2 id="messagesSent">0</h2>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="col-md-4"><div class="card stat-card"><div class="card-body"><h6>Total de Contatos</h6><h2 id="totalContacts">0</h2></div></div></div>
+                    <div class="col-md-4"><div class="card text-white bg-success"><div class="card-body"><h6>Com Opt-in</h6><h2 id="optInContacts">0</h2></div></div></div>
+                    <div class="col-md-4"><div class="card text-white bg-info"><div class="card-body"><h6>Mensagens Enviadas</h6><h2 id="messagesSent">0</h2></div></div></div>
                 </div>
             </div>
-
-            <!-- Contatos -->
-            <div class="tab-pane fade" id="contacts" role="tabpanel">
+            <div class="tab-pane fade" id="contacts">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">Gerenciar Contatos</h5>
-                        <div id="contactsAlert"></div>
-                        <button class="btn btn-primary mb-3" onclick="loadContacts()"> Atualizar</button>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5><i class="bi bi-people"></i> Gerenciar Contatos</h5>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addContactModal"><i class="bi bi-plus-circle"></i> Adicionar Contato</button>
+                        </div>
+                        <button class="btn btn-outline-primary btn-sm mb-3" onclick="loadContacts()"><i class="bi bi-arrow-clockwise"></i> Atualizar</button>
                         <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Nome</th>
-                                        <th>Telefone</th>
-                                        <th>Email</th>
-                                        <th>Opt-in</th>
-                                        <th>Data</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="contactsBody">
-                                    <tr><td colspan="5" class="text-center">Carregando...</td></tr>
-                                </tbody>
+                            <table class="table table-hover">
+                                <thead><tr><th>Nome</th><th>Telefone</th><th>Email</th><th>Opt-in</th><th>Data</th><th>Ações</th></tr></thead>
+                                <tbody id="contactsBody"><tr><td colspan="6" class="text-center">Carregando...</td></tr></tbody>
                             </table>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Mensagens em Massa -->
-            <div class="tab-pane fade" id="bulk" role="tabpanel">
+            <div class="tab-pane fade" id="bulk">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">📤 Enviar Mensagens em Massa</h5>
+                        <h5><i class="bi bi-send"></i> Enviar Mensagens em Massa</h5>
                         <div id="bulkAlert"></div>
                         <form id="bulkMessageForm">
-                            <!-- Tipo de Mensagem -->
                             <div class="mb-3">
-                                <label class="form-label">Tipo de Mensagem *</label>
-                                <select class="form-select" id="messageType" required>
+                                <label class="form-label">Tipo de Mensagem</label>
+                                <select class="form-select" id="messageType">
                                     <option value="text">Texto Simples</option>
                                     <option value="template">Template com Imagem</option>
                                 </select>
                             </div>
-
-                            <!-- Texto Simples -->
-                            <div class="mb-3" id="textMessageGroup">
-                                <label class="form-label">Mensagem *</label>
-                                <textarea class="form-control" id="messageText" rows="4" placeholder="Digite sua mensagem aqui..."></textarea>
-                                <small class="text-muted">Use {{nome}} para personalizar com o nome do contato</small>
+                            <div id="textMessageGroup">
+                                <div class="mb-3">
+                                    <label class="form-label">Mensagem</label>
+                                    <textarea class="form-control" id="messageText" rows="4" placeholder="Use {{nome}} para personalizar"></textarea>
+                                </div>
                             </div>
-
-                            <!-- Template com Imagem -->
                             <div id="templateGroup" style="display:none;">
                                 <div class="mb-3">
-                                    <label class="form-label">Nome do Template *</label>
+                                    <label class="form-label">Nome do Template</label>
                                     <input type="text" class="form-control" id="templateName" placeholder="ex: boas_vindas">
-                                    <small class="text-muted">Nome configurado no WhatsApp Business Manager</small>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">URL da Imagem *</label>
-                                    <input type="url" class="form-control" id="imageUrl" placeholder="https://exemplo.com/imagem.jpg">
+                                    <label class="form-label">URL da Imagem</label>
+                                    <input type="url" class="form-control" id="imageUrl" placeholder="https://...">
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">Variáveis do Template</label>
-                                    <input type="text" class="form-control mb-2" id="templateVar1" placeholder="Variável 1 (opcional)">
-                                    <input type="text" class="form-control mb-2" id="templateVar2" placeholder="Variável 2 (opcional)">
-                                    <input type="text" class="form-control" id="templateVar3" placeholder="Variável 3 (opcional)">
-                                    <small class="text-muted">Use {{nome}} para usar o nome do banco de dados</small>
+                                    <label class="form-label">Variáveis</label>
+                                    <input type="text" class="form-control mb-2" id="templateVar1" placeholder="Variável 1 (use {{nome}})">
+                                    <input type="text" class="form-control mb-2" id="templateVar2" placeholder="Variável 2">
+                                    <input type="text" class="form-control" id="templateVar3" placeholder="Variável 3">
                                 </div>
                                 <div class="form-check mb-3">
                                     <input class="form-check-input" type="checkbox" id="useNameVariable">
-                                    <label class="form-check-label" for="useNameVariable">
-                                        Usar nome do contato como primeira variável
-                                    </label>
+                                    <label class="form-check-label">Usar nome como 1ª variável</label>
                                 </div>
                             </div>
-
-                            <!-- Destinatários -->
                             <div class="mb-3">
-                                <label class="form-label">Destinatários *</label>
-                                <select class="form-select" id="recipientType" required>
-                                    <option value="optin">Apenas com Opt-in (Recomendado)</option>
+                                <label class="form-label">Destinatários</label>
+                                <select class="form-select" id="recipientType">
+                                    <option value="optin">Apenas com Opt-in</option>
                                     <option value="all">Todos os contatos</option>
                                     <option value="custom">Lista personalizada</option>
                                 </select>
                             </div>
-
                             <div class="mb-3" id="customListGroup" style="display:none;">
-                                <label class="form-label">Números (separados por vírgula)</label>
                                 <textarea class="form-control" id="customPhones" rows="3" placeholder="5511999999999, 5511888888888"></textarea>
                             </div>
-
-                            <!-- Prévia -->
-                            <div class="alert alert-info" id="previewBox" style="display:none;">
-                                <strong>📋 Prévia:</strong>
-                                <div id="previewContent"></div>
-                            </div>
-
-                            <!-- Confirmação -->
                             <div class="form-check mb-3">
                                 <input class="form-check-input" type="checkbox" id="confirmSend">
-                                <label class="form-check-label" for="confirmSend">
-                                    Confirmo que desejo enviar esta mensagem
-                                </label>
+                                <label class="form-check-label">Confirmo o envio</label>
                             </div>
-
-                            <div class="btn-group">
-                                <button type="submit" class="btn btn-primary" id="btnSendBulk">
-                                    📤 Enviar Mensagens
-                                </button>
-                                <button type="button" class="btn btn-secondary" onclick="previewMessage()">
-                                    👁️ Visualizar Prévia
-                                </button>
-                            </div>
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i> Enviar</button>
+                            <button type="button" class="btn btn-secondary" onclick="previewMessage()"><i class="bi bi-eye"></i> Prévia</button>
                         </form>
-                    </div>
-                </div>
-
-                <!-- Status do Envio -->
-                <div class="card mt-3">
-                    <div class="card-body">
-                        <h5 class="card-title">📊 Status do Envio</h5>
-                        <div id="sendStatus">
-                            <p class="text-muted">Nenhum envio em andamento</p>
-                        </div>
+                        <div id="sendStatus" class="mt-3"></div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
+    <div class="modal fade" id="addContactModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-person-plus"></i> Adicionar Contato</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addContactForm">
+                        <div class="mb-3">
+                            <label class="form-label">Nome *</label>
+                            <input type="text" class="form-control" id="contactName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Telefone * (com DDI)</label>
+                            <input type="tel" class="form-control" id="contactPhone" placeholder="5511999999999" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="contactEmail">
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="contactOptIn">
+                            <label class="form-check-label">Aceita mensagens (Opt-in)</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-check-circle"></i> Adicionar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Helper para pegar cookie
-        function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop().split(';').shift();
-            return null;
-        }
-
-        // Verificar se está autenticado via cookie
         const username = localStorage.getItem("admin_username");
         document.getElementById("username").textContent = username || "Admin";
-
         async function logout() {
             await fetch("/api/admin/logout", { method: "POST", credentials: "include" });
             localStorage.clear();
             window.location.href = "/admin_login.html";
         }
-
         async function loadDashboard() {
             try {
                 const res = await fetch("/api/admin/contacts", { credentials: "include" });
-                if (res.status === 401) {
-                    window.location.href = "/admin_login.html";
-                    return;
-                }
+                if (res.status === 401) return window.location.href = "/admin_login.html";
                 if (res.ok) {
                     const contacts = await res.json();
                     document.getElementById("totalContacts").textContent = contacts.length;
@@ -225,110 +180,108 @@
                 }
             } catch(e) { console.error(e); }
         }
-
         async function loadContacts() {
             const tbody = document.getElementById("contactsBody");
-            tbody.innerHTML = "<tr><td colspan=\"5\" class=\"text-center\">Carregando...</td></tr>";
+            tbody.innerHTML = "<tr><td colspan=\"6\" class=\"text-center\"><div class=\"spinner-border spinner-border-sm\"></div> Carregando...</td></tr>";
             try {
                 const res = await fetch("/api/admin/contacts", { credentials: "include" });
-                if (res.status === 401) {
-                    window.location.href = "/admin_login.html";
-                    return;
-                }
+                if (res.status === 401) return window.location.href = "/admin_login.html";
                 if (res.ok) {
                     const contacts = await res.json();
+                    if (contacts.length === 0) {
+                        tbody.innerHTML = "<tr><td colspan=\"6\" class=\"text-center text-muted\">Nenhum contato encontrado</td></tr>";
+                        return;
+                    }
                     tbody.innerHTML = contacts.map(c => `
                         <tr>
                             <td>${c.name || "-"}</td>
                             <td>${c.phone}</td>
                             <td>${c.email || "-"}</td>
-                            <td><span class="badge ${c.opt_in ? "bg-success" : "bg-danger"}">${c.opt_in ? "Sim" : "Não"}</span></td>
+                            <td><span class="badge ${c.opt_in ? "bg-success" : "bg-secondary"}">${c.opt_in ? "Sim" : "Não"}</span></td>
                             <td>${new Date(c.created_at).toLocaleDateString("pt-BR")}</td>
+                            <td>
+                                <button class="btn btn-sm btn-danger" onclick="deleteContact('${c.phone}')"><i class="bi bi-trash"></i></button>
+                            </td>
                         </tr>
                     `).join("");
                 }
             } catch(e) { console.error(e); }
         }
-
+        document.getElementById("addContactForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector("button[type=submit]");
+            btn.disabled = true;
+            try {
+                const res = await fetch("/api/admin/contacts/add", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({
+                        name: document.getElementById("contactName").value,
+                        phone: document.getElementById("contactPhone").value,
+                        email: document.getElementById("contactEmail").value,
+                        opt_in: document.getElementById("contactOptIn").checked
+                    })
+                });
+                if (res.ok) {
+                    alert("✅ Contato adicionado com sucesso!");
+                    bootstrap.Modal.getInstance(document.getElementById("addContactModal")).hide();
+                    document.getElementById("addContactForm").reset();
+                    loadContacts();
+                    loadDashboard();
+                } else {
+                    const data = await res.json();
+                    alert("❌ Erro: " + (data.message || "Falha ao adicionar"));
+                }
+            } catch(e) { alert("❌ Erro: " + e.message); }
+            finally { btn.disabled = false; }
+        });
+        async function deleteContact(phone) {
+            if (!confirm("Deseja realmente excluir este contato?")) return;
+            try {
+                const res = await fetch("/api/admin/contacts/delete", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ phone })
+                });
+                if (res.ok) {
+                    alert("✅ Contato excluído!");
+                    loadContacts();
+                    loadDashboard();
+                } else alert("❌ Erro ao excluir");
+            } catch(e) { alert("❌ Erro: " + e.message); }
+        }
         document.getElementById("recipientType").addEventListener("change", e => {
             document.getElementById("customListGroup").style.display = e.target.value === "custom" ? "block" : "none";
         });
-
-        // Toggle entre texto e template
         document.getElementById("messageType").addEventListener("change", e => {
             const isTemplate = e.target.value === "template";
             document.getElementById("textMessageGroup").style.display = isTemplate ? "none" : "block";
             document.getElementById("templateGroup").style.display = isTemplate ? "block" : "none";
-            
-            // Ajustar required
-            document.getElementById("messageText").required = !isTemplate;
-            document.getElementById("templateName").required = isTemplate;
-            document.getElementById("imageUrl").required = isTemplate;
         });
-
-        // Função de prévia
         function previewMessage() {
-            const messageType = document.getElementById("messageType").value;
-            const previewBox = document.getElementById("previewBox");
-            const previewContent = document.getElementById("previewContent");
-            
-            if (messageType === "text") {
-                const message = document.getElementById("messageText").value;
-                if (!message) {
-                    alert("Digite uma mensagem primeiro!");
-                    return;
-                }
-                previewContent.innerHTML = `<p><strong>Mensagem:</strong><br>${message.replace(/{{nome}}/g, '<span class="text-primary">[Nome do Contato]</span>')}</p>`;
+            const type = document.getElementById("messageType").value;
+            if (type === "text") {
+                const msg = document.getElementById("messageText").value;
+                if (!msg) return alert("Digite uma mensagem!");
+                alert("Prévia:\\n\\n" + msg.replace(/{{nome}}/g, "[Nome]"));
             } else {
-                const templateName = document.getElementById("templateName").value;
-                const imageUrl = document.getElementById("imageUrl").value;
-                const var1 = document.getElementById("templateVar1").value;
-                const var2 = document.getElementById("templateVar2").value;
-                const var3 = document.getElementById("templateVar3").value;
-                const useName = document.getElementById("useNameVariable").checked;
-                
-                if (!templateName || !imageUrl) {
-                    alert("Preencha o nome do template e URL da imagem!");
-                    return;
-                }
-                
-                let varsHtml = '';
-                if (useName) varsHtml += '<li>Variável 1: <span class="text-primary">[Nome do Contato]</span></li>';
-                if (var1) varsHtml += `<li>Variável ${useName ? '2' : '1'}: ${var1.replace(/{{nome}}/g, '<span class="text-primary">[Nome do Contato]</span>')}</li>`;
-                if (var2) varsHtml += `<li>Variável ${useName ? '3' : '2'}: ${var2}</li>`;
-                if (var3) varsHtml += `<li>Variável 3: ${var3}</li>`;
-                
-                previewContent.innerHTML = `
-                    <p><strong>Template:</strong> ${templateName}</p>
-                    <p><strong>Imagem:</strong> <a href="${imageUrl}" target="_blank">Ver imagem</a></p>
-                    ${varsHtml ? `<p><strong>Variáveis:</strong></p><ul>${varsHtml}</ul>` : ''}
-                `;
+                const template = document.getElementById("templateName").value;
+                const img = document.getElementById("imageUrl").value;
+                if (!template || !img) return alert("Preencha template e imagem!");
+                alert("Prévia:\\nTemplate: " + template + "\\nImagem: " + img);
             }
-            
-            previewBox.style.display = "block";
         }
-
         document.getElementById("bulkMessageForm").addEventListener("submit", async (e) => {
             e.preventDefault();
-            
-            if (!document.getElementById("confirmSend").checked) {
-                alert("Confirme o envio marcando a caixa!");
-                return;
-            }
-            
-            const messageType = document.getElementById("messageType").value;
-            const btn = document.getElementById("btnSendBulk");
+            if (!document.getElementById("confirmSend").checked) return alert("Confirme o envio!");
+            const type = document.getElementById("messageType").value;
             const statusDiv = document.getElementById("sendStatus");
-            
-            btn.disabled = true;
-            btn.textContent = "⏳ Enviando...";
-            statusDiv.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Processando envio...';
-            
+            statusDiv.innerHTML = '<div class="alert alert-info"><div class="spinner-border spinner-border-sm me-2"></div>Enviando...</div>';
             try {
                 let endpoint, body;
-                
-                if (messageType === "text") {
-                    // Envio de texto simples
+                if (type === "text") {
                     endpoint = "/api/admin/bulk-message";
                     body = {
                         message: document.getElementById("messageText").value,
@@ -336,61 +289,41 @@
                         phones: document.getElementById("customPhones").value.split(",").map(p => p.trim()).filter(p => p)
                     };
                 } else {
-                    // Envio de template com imagem
                     endpoint = "/api/admin/bulk-template";
-                    const variables = [];
-                    const useName = document.getElementById("useNameVariable").checked;
-                    
-                    if (useName) variables.push("{{nome}}");
-                    
-                    const var1 = document.getElementById("templateVar1").value;
-                    const var2 = document.getElementById("templateVar2").value;
-                    const var3 = document.getElementById("templateVar3").value;
-                    
-                    if (var1) variables.push(var1);
-                    if (var2) variables.push(var2);
-                    if (var3) variables.push(var3);
-                    
+                    const vars = [];
+                    if (document.getElementById("useNameVariable").checked) vars.push("{{nome}}");
+                    const v1 = document.getElementById("templateVar1").value;
+                    const v2 = document.getElementById("templateVar2").value;
+                    const v3 = document.getElementById("templateVar3").value;
+                    if (v1) vars.push(v1);
+                    if (v2) vars.push(v2);
+                    if (v3) vars.push(v3);
                     body = {
                         template_name: document.getElementById("templateName").value,
                         image_url: document.getElementById("imageUrl").value,
-                        variables: variables,
+                        variables: vars,
                         recipient_type: document.getElementById("recipientType").value,
                         phones: document.getElementById("customPhones").value.split(",").map(p => p.trim()).filter(p => p)
                     };
                 }
-                
                 const res = await fetch(endpoint, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
                     body: JSON.stringify(body)
                 });
-                
-                if (res.status === 401) {
-                    window.location.href = "/admin_login.html";
-                    return;
-                }
-                
+                if (res.status === 401) return window.location.href = "/admin_login.html";
                 const data = await res.json();
-                
                 if (res.ok) {
-                    statusDiv.innerHTML = `<div class="alert alert-success">✅ Sucesso! ${data.sent || 0} mensagens enviadas</div>`;
+                    statusDiv.innerHTML = `<div class="alert alert-success">✅ ${data.sent || 0} mensagens enviadas!</div>`;
                     document.getElementById("bulkMessageForm").reset();
-                    document.getElementById("confirmSend").checked = false;
-                    document.getElementById("previewBox").style.display = "none";
                 } else {
-                    statusDiv.innerHTML = `<div class="alert alert-danger">❌ Erro: ${data.message || 'Falha no envio'}</div>`;
+                    statusDiv.innerHTML = `<div class="alert alert-danger">❌ ${data.message || "Erro no envio"}</div>`;
                 }
             } catch(e) {
-                console.error(e);
-                statusDiv.innerHTML = `<div class="alert alert-danger">❌ Erro: ${e.message}</div>`;
-            } finally {
-                btn.disabled = false;
-                btn.textContent = "📤 Enviar Mensagens";
+                statusDiv.innerHTML = `<div class="alert alert-danger">❌ ${e.message}</div>`;
             }
         });
-
         loadDashboard();
     </script>
 </body>

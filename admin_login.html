@@ -185,9 +185,9 @@
 
                 if (result.success) {
                     showAlert('✅ Login bem-sucedido! Redirecionando...', false);
-                    // Recarregar a página completamente para garantir que o cookie seja lido
+                    // Redirecionar para o admin dashboard
                     setTimeout(() => {
-                        window.location.reload();
+                        window.location.href = '/admin';
                     }, 500);
                 } else {
                     showAlert('❌ ' + (result.message || 'Usuário ou senha incorretos'), true);
