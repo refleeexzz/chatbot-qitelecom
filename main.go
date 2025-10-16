@@ -173,49 +173,27 @@ func setupRoutes(chatbotHandler *handlers.ChatbotHandler, bulkMessageHandler *ha
 	http.HandleFunc("/api/admin/contacts/update-optin", handlers.VerifyAdminToken(adminHandler.HandleUpdateOptIn))
 	http.HandleFunc("/api/admin/optin-stats", handlers.VerifyAdminToken(bulkMessageHandler.HandleGetOptInStats))
 
-	// Bulk message routes - PROTECTED (authentication check inline in handlers)
-	http.HandleFunc("/api/bulk-message", bulkMessageHandler.HandleBulkMessage)
-	http.HandleFunc("/api/bulk-template", bulkMessageHandler.HandleBulkTemplateMessage)
+	// Bulk message routes - PROTECTED
+	http.HandleFunc("/api/admin/bulk-message", handlers.VerifyAdminToken(bulkMessageHandler.HandleBulkMessage))
+	http.HandleFunc("/api/admin/bulk-template", handlers.VerifyAdminToken(bulkMessageHandler.HandleBulkTemplateMessage))
 
-	// Auth routes
+	// Auth routes (public)
 	http.HandleFunc("/api/admin/login", authHandler.HandleLogin)
 	http.HandleFunc("/api/admin/logout", authHandler.HandleLogout)
 
-	// Static pages
-	http.HandleFunc("/bulk-messages", bulkMessageHandler.HandleBulkMessagePage) // Página HTML disparos
-	http.HandleFunc("/admin/contacts", adminHandler.HandleAdminPage)            // Página HTML admin antiga
-	http.HandleFunc("/admin", handleAdminDashboard)                             // Página unificada com login
-	http.HandleFunc("/", chatbotHandler.HandleStatic)                           // página estática sem wrappers
+	// Admin pages - protected
+	http.HandleFunc("/admin", authHandler.HandleAdminDashboard)
+	http.HandleFunc("/admin_dashboard.html", authHandler.HandleAdminDashboard)
+	http.HandleFunc("/admin_login.html", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "admin_login.html")
+	})
 
 	// WhatsApp webhook handler
 	whatsappHandler := handlers.NewWhatsAppWebhookHandler(chatbotHandler.Service())
 	http.HandleFunc("/webhook/whatsapp", whatsappHandler.HandleWhatsAppWebhook)
-} // handleAdminDashboard serve a página unificada de admin ou redireciona para login
-func handleAdminDashboard(w http.ResponseWriter, r *http.Request) {
-	// Verificar se tem cookie de auth válido
-	cookie, err := r.Cookie("admin_token")
-	if err != nil || cookie.Value == "" {
-		// Não autenticado - mostrar página de login
-		http.ServeFile(w, r, "admin_login.html")
-		return
-	}
 
-	// Validar formato do token (deve começar com "admin_")
-	if len(cookie.Value) < 10 || cookie.Value[:6] != "admin_" {
-		// Token inválido - limpar cookie e mostrar login
-		http.SetCookie(w, &http.Cookie{
-			Name:     "admin_token",
-			Value:    "",
-			Path:     "/",
-			MaxAge:   -1,
-			HttpOnly: true,
-		})
-		http.ServeFile(w, r, "admin_login.html")
-		return
-	}
-
-	// Autenticado - mostrar dashboard
-	http.ServeFile(w, r, "admin_dashboard.html")
+	// Static pages (public)
+	http.HandleFunc("/", chatbotHandler.HandleStatic)
 }
 
 func startServer() {
