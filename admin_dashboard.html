@@ -92,33 +92,99 @@
             <div class="tab-pane fade" id="bulk" role="tabpanel">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">Enviar Mensagens em Massa</h5>
+                        <h5 class="card-title">📤 Enviar Mensagens em Massa</h5>
                         <div id="bulkAlert"></div>
                         <form id="bulkMessageForm">
+                            <!-- Tipo de Mensagem -->
                             <div class="mb-3">
-                                <label class="form-label">Mensagem *</label>
-                                <textarea class="form-control" id="messageText" rows="4" required></textarea>
+                                <label class="form-label">Tipo de Mensagem *</label>
+                                <select class="form-select" id="messageType" required>
+                                    <option value="text">Texto Simples</option>
+                                    <option value="template">Template com Imagem</option>
+                                </select>
                             </div>
+
+                            <!-- Texto Simples -->
+                            <div class="mb-3" id="textMessageGroup">
+                                <label class="form-label">Mensagem *</label>
+                                <textarea class="form-control" id="messageText" rows="4" placeholder="Digite sua mensagem aqui..."></textarea>
+                                <small class="text-muted">Use {{nome}} para personalizar com o nome do contato</small>
+                            </div>
+
+                            <!-- Template com Imagem -->
+                            <div id="templateGroup" style="display:none;">
+                                <div class="mb-3">
+                                    <label class="form-label">Nome do Template *</label>
+                                    <input type="text" class="form-control" id="templateName" placeholder="ex: boas_vindas">
+                                    <small class="text-muted">Nome configurado no WhatsApp Business Manager</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">URL da Imagem *</label>
+                                    <input type="url" class="form-control" id="imageUrl" placeholder="https://exemplo.com/imagem.jpg">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Variáveis do Template</label>
+                                    <input type="text" class="form-control mb-2" id="templateVar1" placeholder="Variável 1 (opcional)">
+                                    <input type="text" class="form-control mb-2" id="templateVar2" placeholder="Variável 2 (opcional)">
+                                    <input type="text" class="form-control" id="templateVar3" placeholder="Variável 3 (opcional)">
+                                    <small class="text-muted">Use {{nome}} para usar o nome do banco de dados</small>
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="useNameVariable">
+                                    <label class="form-check-label" for="useNameVariable">
+                                        Usar nome do contato como primeira variável
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Destinatários -->
                             <div class="mb-3">
                                 <label class="form-label">Destinatários *</label>
                                 <select class="form-select" id="recipientType" required>
+                                    <option value="optin">Apenas com Opt-in (Recomendado)</option>
                                     <option value="all">Todos os contatos</option>
-                                    <option value="optin">Apenas com Opt-in</option>
                                     <option value="custom">Lista personalizada</option>
                                 </select>
                             </div>
+
                             <div class="mb-3" id="customListGroup" style="display:none;">
                                 <label class="form-label">Números (separados por vírgula)</label>
-                                <textarea class="form-control" id="customPhones" rows="3"></textarea>
+                                <textarea class="form-control" id="customPhones" rows="3" placeholder="5511999999999, 5511888888888"></textarea>
                             </div>
+
+                            <!-- Prévia -->
+                            <div class="alert alert-info" id="previewBox" style="display:none;">
+                                <strong>📋 Prévia:</strong>
+                                <div id="previewContent"></div>
+                            </div>
+
+                            <!-- Confirmação -->
                             <div class="form-check mb-3">
                                 <input class="form-check-input" type="checkbox" id="confirmSend">
                                 <label class="form-check-label" for="confirmSend">
                                     Confirmo que desejo enviar esta mensagem
                                 </label>
                             </div>
-                            <button type="submit" class="btn btn-primary" id="btnSendBulk"> Enviar</button>
+
+                            <div class="btn-group">
+                                <button type="submit" class="btn btn-primary" id="btnSendBulk">
+                                    📤 Enviar Mensagens
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="previewMessage()">
+                                    👁️ Visualizar Prévia
+                                </button>
+                            </div>
                         </form>
+                    </div>
+                </div>
+
+                <!-- Status do Envio -->
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h5 class="card-title">📊 Status do Envio</h5>
+                        <div id="sendStatus">
+                            <p class="text-muted">Nenhum envio em andamento</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -188,33 +254,141 @@
             document.getElementById("customListGroup").style.display = e.target.value === "custom" ? "block" : "none";
         });
 
+        // Toggle entre texto e template
+        document.getElementById("messageType").addEventListener("change", e => {
+            const isTemplate = e.target.value === "template";
+            document.getElementById("textMessageGroup").style.display = isTemplate ? "none" : "block";
+            document.getElementById("templateGroup").style.display = isTemplate ? "block" : "none";
+            
+            // Ajustar required
+            document.getElementById("messageText").required = !isTemplate;
+            document.getElementById("templateName").required = isTemplate;
+            document.getElementById("imageUrl").required = isTemplate;
+        });
+
+        // Função de prévia
+        function previewMessage() {
+            const messageType = document.getElementById("messageType").value;
+            const previewBox = document.getElementById("previewBox");
+            const previewContent = document.getElementById("previewContent");
+            
+            if (messageType === "text") {
+                const message = document.getElementById("messageText").value;
+                if (!message) {
+                    alert("Digite uma mensagem primeiro!");
+                    return;
+                }
+                previewContent.innerHTML = `<p><strong>Mensagem:</strong><br>${message.replace(/{{nome}}/g, '<span class="text-primary">[Nome do Contato]</span>')}</p>`;
+            } else {
+                const templateName = document.getElementById("templateName").value;
+                const imageUrl = document.getElementById("imageUrl").value;
+                const var1 = document.getElementById("templateVar1").value;
+                const var2 = document.getElementById("templateVar2").value;
+                const var3 = document.getElementById("templateVar3").value;
+                const useName = document.getElementById("useNameVariable").checked;
+                
+                if (!templateName || !imageUrl) {
+                    alert("Preencha o nome do template e URL da imagem!");
+                    return;
+                }
+                
+                let varsHtml = '';
+                if (useName) varsHtml += '<li>Variável 1: <span class="text-primary">[Nome do Contato]</span></li>';
+                if (var1) varsHtml += `<li>Variável ${useName ? '2' : '1'}: ${var1.replace(/{{nome}}/g, '<span class="text-primary">[Nome do Contato]</span>')}</li>`;
+                if (var2) varsHtml += `<li>Variável ${useName ? '3' : '2'}: ${var2}</li>`;
+                if (var3) varsHtml += `<li>Variável 3: ${var3}</li>`;
+                
+                previewContent.innerHTML = `
+                    <p><strong>Template:</strong> ${templateName}</p>
+                    <p><strong>Imagem:</strong> <a href="${imageUrl}" target="_blank">Ver imagem</a></p>
+                    ${varsHtml ? `<p><strong>Variáveis:</strong></p><ul>${varsHtml}</ul>` : ''}
+                `;
+            }
+            
+            previewBox.style.display = "block";
+        }
+
         document.getElementById("bulkMessageForm").addEventListener("submit", async (e) => {
             e.preventDefault();
+            
             if (!document.getElementById("confirmSend").checked) {
-                alert("Confirme o envio!");
+                alert("Confirme o envio marcando a caixa!");
                 return;
             }
+            
+            const messageType = document.getElementById("messageType").value;
             const btn = document.getElementById("btnSendBulk");
+            const statusDiv = document.getElementById("sendStatus");
+            
             btn.disabled = true;
+            btn.textContent = "⏳ Enviando...";
+            statusDiv.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Processando envio...';
+            
             try {
-                const res = await fetch("/api/admin/bulk-message", {
+                let endpoint, body;
+                
+                if (messageType === "text") {
+                    // Envio de texto simples
+                    endpoint = "/api/admin/bulk-message";
+                    body = {
+                        message: document.getElementById("messageText").value,
+                        recipient_type: document.getElementById("recipientType").value,
+                        phones: document.getElementById("customPhones").value.split(",").map(p => p.trim()).filter(p => p)
+                    };
+                } else {
+                    // Envio de template com imagem
+                    endpoint = "/api/admin/bulk-template";
+                    const variables = [];
+                    const useName = document.getElementById("useNameVariable").checked;
+                    
+                    if (useName) variables.push("{{nome}}");
+                    
+                    const var1 = document.getElementById("templateVar1").value;
+                    const var2 = document.getElementById("templateVar2").value;
+                    const var3 = document.getElementById("templateVar3").value;
+                    
+                    if (var1) variables.push(var1);
+                    if (var2) variables.push(var2);
+                    if (var3) variables.push(var3);
+                    
+                    body = {
+                        template_name: document.getElementById("templateName").value,
+                        image_url: document.getElementById("imageUrl").value,
+                        variables: variables,
+                        recipient_type: document.getElementById("recipientType").value,
+                        phones: document.getElementById("customPhones").value.split(",").map(p => p.trim()).filter(p => p)
+                    };
+                }
+                
+                const res = await fetch(endpoint, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
-                    body: JSON.stringify({
-                        message: document.getElementById("messageText").value,
-                        recipient_type: document.getElementById("recipientType").value,
-                        phones: document.getElementById("customPhones").value.split(",").map(p => p.trim())
-                    })
+                    body: JSON.stringify(body)
                 });
+                
                 if (res.status === 401) {
                     window.location.href = "/admin_login.html";
                     return;
                 }
+                
                 const data = await res.json();
-                alert(res.ok ? `Sucesso! ${data.sent} mensagens enviadas` : `Erro: ${data.message}`);
-            } catch(e) { alert("Erro: " + e.message); }
-            finally { btn.disabled = false; }
+                
+                if (res.ok) {
+                    statusDiv.innerHTML = `<div class="alert alert-success">✅ Sucesso! ${data.sent || 0} mensagens enviadas</div>`;
+                    document.getElementById("bulkMessageForm").reset();
+                    document.getElementById("confirmSend").checked = false;
+                    document.getElementById("previewBox").style.display = "none";
+                } else {
+                    statusDiv.innerHTML = `<div class="alert alert-danger">❌ Erro: ${data.message || 'Falha no envio'}</div>`;
+                }
+            } catch(e) {
+                console.error(e);
+                statusDiv.innerHTML = `<div class="alert alert-danger">❌ Erro: ${e.message}</div>`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "📤 Enviar Mensagens";
+            }
         });
 
         loadDashboard();
