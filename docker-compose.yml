@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
 
   qibot:
@@ -32,8 +30,6 @@ services:
       - ./index.html:/app/index.html:ro
       - ./admin_login.html:/app/admin_login.html:ro
       - ./admin_dashboard.html:/app/admin_dashboard.html:ro
-      - ./admin_contacts.html:/app/admin_contacts.html:ro
-      - ./bulk_messages.html:/app/bulk_messages.html:ro
     labels:
       com.datadoghq.ad.logs: '[{"source": "go", "service": "qibot-chatbot"}]'
     restart: unless-stopped
