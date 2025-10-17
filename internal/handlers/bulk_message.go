@@ -42,28 +42,6 @@ func NewBulkMessageHandler(db *sql.DB) *BulkMessageHandler {
 
 // HandleBulkMessage processa envio em lote de mensagens
 func (h *BulkMessageHandler) HandleBulkMessage(w http.ResponseWriter, r *http.Request) {
-	// 🔒 VERIFICAÇÃO DE AUTENTICAÇÃO INLINE
-	cookie, err := r.Cookie("admin_token")
-	if err != nil || cookie.Value == "" {
-		log.Warn().Str("path", r.URL.Path).Msg("🚫 Bulk message: Cookie não encontrado - acesso negado")
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error": "Não autenticado. Faça login primeiro.",
-		})
-		return
-	}
-
-	if len(cookie.Value) < 20 || (len(cookie.Value) >= 6 && cookie.Value[:6] != "admin_") {
-		log.Warn().Str("path", r.URL.Path).Msg("🚫 Bulk message: Token inválido")
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error": "Token inválido.",
-		})
-		return
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
@@ -289,30 +267,6 @@ func (h *BulkMessageHandler) HandleGetOptInStats(w http.ResponseWriter, r *http.
 // HandleBulkTemplateMessage processa envio em lote de template messages
 func (h *BulkMessageHandler) HandleBulkTemplateMessage(w http.ResponseWriter, r *http.Request) {
 	log.Info().Str("method", r.Method).Str("path", r.URL.Path).Msg("⚡ HandleBulkTemplateMessage CHAMADO")
-
-	// 🔒 VERIFICAÇÃO DE AUTENTICAÇÃO INLINE
-	cookie, err := r.Cookie("admin_token")
-	if err != nil || cookie.Value == "" {
-		log.Warn().Str("path", r.URL.Path).Msg("🚫 Cookie não encontrado - acesso negado")
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error": "Não autenticado. Faça login primeiro.",
-		})
-		return
-	}
-
-	// Verificar formato do token
-	if len(cookie.Value) < 20 || (len(cookie.Value) >= 6 && cookie.Value[:6] != "admin_") {
-		log.Warn().Str("path", r.URL.Path).Msg("🚫 Token inválido - acesso negado")
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error": "Token inválido.",
-		})
-		return
-	}
-	log.Info().Msg("✅ Autenticação verificada - prosseguindo")
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")

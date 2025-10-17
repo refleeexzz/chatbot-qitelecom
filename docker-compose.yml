@@ -18,6 +18,7 @@ services:
       REDIS_HOST: redis
       # If your app expects a single address variable, you can set it too
       REDIS_ADDR: redis:6379
+      SQLITE_DB_PATH: "/app/data/leads.db"
       # Pass through other values from .env (allow docker-compose to substitute)
       PORT: "${PORT}"
       BODY_LIMIT_BYTES: "${BODY_LIMIT_BYTES}"
@@ -26,8 +27,8 @@ services:
       ADMIN_PASSWORD: "${ADMIN_PASSWORD}"
     volumes:
       - ./credentials.json:/app/credentials.json:ro
-      # Volume nomeado para persistir o banco de dados SQLite
-      - qibot_db:/app
+      # Volume nomeado para persistir apenas os dados do banco de dados SQLite
+      - qibot_db:/app/data
       # Arquivos HTML - mapeamento direto para desenvolvimento
       - ./index.html:/app/index.html:ro
       - ./admin_login.html:/app/admin_login.html:ro

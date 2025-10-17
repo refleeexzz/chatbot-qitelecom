@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
+	"path/filepath"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -87,7 +87,8 @@ func main() {
 	chatbotHandler := handlers.NewChatbotHandler(chatbotService)
 	bulkMessageHandler := handlers.NewBulkMessageHandler(db)
 	adminHandler := handlers.NewAdminHandler(db, redisClient)
-	authHandler := handlers.NewAuthHandler()
+	sessionManager := security.NewSessionManager(redisClient)
+	authHandler := handlers.NewAuthHandler(sessionManager)
 
 	// 🌐 Configurar rotas
 	setupRoutes(chatbotHandler, bulkMessageHandler, adminHandler, authHandler, db, redisClient)
@@ -97,7 +98,16 @@ func main() {
 }
 
 func setupDatabase() (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", "leads.db")
+	dbPath := os.Getenv("SQLITE_DB_PATH")
+	if dbPath == "" {
+		dbPath = "leads.db"
+	}
+
+	if err := ensureDatabaseDir(dbPath); err != nil {
+		return nil, err
+	}
+
+	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, err
 	}
@@ -126,6 +136,14 @@ func setupDatabase() (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+func ensureDatabaseDir(path string) error {
+	dir := filepath.Dir(path)
+	if dir == "." || dir == "" {
+		return nil
+	}
+	return os.MkdirAll(dir, 0o755)
 }
 
 func setupRedis() *redis.Client {
@@ -167,56 +185,33 @@ func setupRoutes(chatbotHandler *handlers.ChatbotHandler, bulkMessageHandler *ha
 	http.Handle("/chatbot", security.WrapHandler(tracedChatbot, cfg, rl))
 	http.Handle("/health", security.WrapHandler(tracedHealth, cfg, rl))
 
-	// Admin routes - protected (require login)
-	http.HandleFunc("/api/admin/contacts", handlers.VerifyAdminToken(adminHandler.HandleGetContacts))
-	http.HandleFunc("/api/admin/contacts/add", handlers.VerifyAdminToken(adminHandler.HandleAddContact))
-	http.HandleFunc("/api/admin/contacts/delete", handlers.VerifyAdminToken(adminHandler.HandleDeleteContact))
-	http.HandleFunc("/api/admin/contacts/update-optin", handlers.VerifyAdminToken(adminHandler.HandleUpdateOptIn))
-	http.HandleFunc("/api/admin/optin-stats", handlers.VerifyAdminToken(bulkMessageHandler.HandleGetOptInStats))
+	// Admin routes - protegidas por sessão
+	requireSession := authHandler.RequireSession
+	http.HandleFunc("/api/admin/contacts", requireSession(adminHandler.HandleGetContacts))
+	http.HandleFunc("/api/admin/contacts/add", requireSession(adminHandler.HandleAddContact))
+	http.HandleFunc("/api/admin/contacts/delete", requireSession(adminHandler.HandleDeleteContact))
+	http.HandleFunc("/api/admin/contacts/update-optin", requireSession(adminHandler.HandleUpdateOptIn))
+	http.HandleFunc("/api/admin/optin-stats", requireSession(bulkMessageHandler.HandleGetOptInStats))
 
-	// Bulk message routes - PROTECTED (authentication check inline in handlers)
-	http.HandleFunc("/api/bulk-message", bulkMessageHandler.HandleBulkMessage)
-	http.HandleFunc("/api/bulk-template", bulkMessageHandler.HandleBulkTemplateMessage)
+	// Bulk message routes - agora protegidas via middleware
+	http.HandleFunc("/api/bulk-message", requireSession(bulkMessageHandler.HandleBulkMessage))
+	http.HandleFunc("/api/bulk-template", requireSession(bulkMessageHandler.HandleBulkTemplateMessage))
 
 	// Auth routes
 	http.HandleFunc("/api/admin/login", authHandler.HandleLogin)
 	http.HandleFunc("/api/admin/logout", authHandler.HandleLogout)
 
 	// Static pages
-	http.HandleFunc("/bulk-messages", bulkMessageHandler.HandleBulkMessagePage) // Página HTML disparos
-	http.HandleFunc("/admin/contacts", adminHandler.HandleAdminPage)            // Página HTML admin antiga
-	http.HandleFunc("/admin", handleAdminDashboard)                             // Página unificada com login
-	http.HandleFunc("/", chatbotHandler.HandleStatic)                           // página estática sem wrappers
+	http.HandleFunc("/bulk-messages", requireSession(bulkMessageHandler.HandleBulkMessagePage)) // Página HTML disparos
+	http.HandleFunc("/admin/contacts", requireSession(adminHandler.HandleAdminPage))            // Página HTML admin antiga
+	http.HandleFunc("/admin", authHandler.HandleAdminGateway)                                   // Página unificada com login
+	http.HandleFunc("/admin/", authHandler.HandleAdminGateway)                                  // Suporta barra no final
+	zerologlog.Info().Msg("🔧 Rotas admin registradas: /admin e /admin/")
+	http.HandleFunc("/", chatbotHandler.HandleStatic) // página estática sem wrappers
 
 	// WhatsApp webhook handler
 	whatsappHandler := handlers.NewWhatsAppWebhookHandler(chatbotHandler.Service())
 	http.HandleFunc("/webhook/whatsapp", whatsappHandler.HandleWhatsAppWebhook)
-} // handleAdminDashboard serve a página unificada de admin ou redireciona para login
-func handleAdminDashboard(w http.ResponseWriter, r *http.Request) {
-	// Verificar se tem cookie de auth válido
-	cookie, err := r.Cookie("admin_token")
-	if err != nil || cookie.Value == "" {
-		// Não autenticado - mostrar página de login
-		http.ServeFile(w, r, "admin_login.html")
-		return
-	}
-
-	// Validar formato do token (deve começar com "admin_")
-	if len(cookie.Value) < 10 || !strings.HasPrefix(cookie.Value, "admin_") {
-		// Token inválido - limpar cookie e mostrar login
-		http.SetCookie(w, &http.Cookie{
-			Name:     "admin_token",
-			Value:    "",
-			Path:     "/",
-			MaxAge:   -1,
-			HttpOnly: true,
-		})
-		http.ServeFile(w, r, "admin_login.html")
-		return
-	}
-
-	// Autenticado - mostrar dashboard
-	http.ServeFile(w, r, "admin_dashboard.html")
 }
 
 func startServer() {

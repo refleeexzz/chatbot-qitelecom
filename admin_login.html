@@ -3,8 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Painel Admin QIBOT</title>
+    <title>Entrar • QIBOT Admin</title>
+    <meta http-equiv="Cache-Control" content="no-store" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <style>
+        :root {
+            color-scheme: light dark;
+            --bg-gradient: linear-gradient(135deg, #5337f4 0%, #8a3ffc 100%);
+            --card-bg: rgba(255, 255, 255, 0.92);
+            --card-border: rgba(255, 255, 255, 0.45);
+            --input-border: rgba(83, 55, 244, 0.2);
+            --input-focus: rgba(83, 55, 244, 0.65);
+            --text-primary: #1a1a1a;
+            --text-muted: #5f5f6b;
+            --error-bg: #ffe6e9;
+            --error-border: #ff7b96;
+            --success-bg: #e3f7ef;
+            --success-border: #4cc08a;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,197 +30,250 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
+            font-family: 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-gradient);
             display: flex;
-            justify-content: center;
             align-items: center;
-            padding: 20px;
+            justify-content: center;
+            padding: 32px 16px;
+            color: var(--text-primary);
         }
 
-        .login-container {
-            background: white;
+        .login-wrapper {
+            width: min(420px, 100%);
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            padding: 50px 40px;
-            max-width: 400px;
-            width: 100%;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 28px 80px rgba(20, 16, 41, 0.28);
+            padding: 36px;
         }
 
-        .logo {
-            text-align: center;
-            margin-bottom: 30px;
+        .brand {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 28px;
         }
 
-        .logo h1 {
-            font-size: 32px;
-            color: #667eea;
-            margin-bottom: 5px;
+        .brand h1 {
+            font-size: 30px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
         }
 
-        .logo p {
-            color: #999;
+        .brand span {
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+
+        .status-box {
+            display: none;
+            border-radius: 12px;
+            padding: 14px 16px;
             font-size: 14px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
         }
 
-        .form-group {
-            margin-bottom: 20px;
+        .status-box.show {
+            display: block;
+        }
+
+        .status-box.error {
+            background: var(--error-bg);
+            border-color: var(--error-border);
+            color: #792032;
+        }
+
+        .status-box.success {
+            background: var(--success-bg);
+            border-color: var(--success-border);
+            color: #1f6c4d;
         }
 
         label {
             display: block;
-            color: #333;
+            font-size: 13px;
             font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
             margin-bottom: 8px;
-            font-size: 14px;
         }
 
         input[type="text"],
         input[type="password"] {
             width: 100%;
+            border-radius: 12px;
+            border: 1px solid var(--input-border);
             padding: 14px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: border-color 0.3s;
+            font-size: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
         input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--input-focus);
+            box-shadow: 0 0 0 3px rgba(138, 63, 252, 0.2);
+        }
+
+        .form-field {
+            margin-bottom: 20px;
         }
 
         button {
             width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
+            border-radius: 12px;
+            padding: 15px;
             font-weight: 600;
+            font-size: 16px;
+            background: linear-gradient(135deg, #4a2df0 0%, #742ff9 100%);
+            color: #fff;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            margin-top: 10px;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
 
         button:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+            transform: translateY(-1px);
+            box-shadow: 0 16px 30px rgba(74, 45, 240, 0.25);
         }
 
         button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
+            opacity: 0.65;
+            cursor: wait;
         }
 
-        .alert {
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-            font-size: 14px;
-        }
-
-        .alert.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .alert.show {
-            display: block;
-        }
-
-        .default-creds {
-            margin-top: 20px;
-            padding: 15px;
-            background: #fff3cd;
-            border-radius: 8px;
+        .foot-note {
+            margin-top: 18px;
             font-size: 13px;
-            color: #856404;
+            color: var(--text-muted);
+            text-align: center;
         }
 
-        .default-creds strong {
-            display: block;
-            margin-bottom: 5px;
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --card-bg: rgba(10, 6, 30, 0.72);
+                --card-border: rgba(138, 63, 252, 0.25);
+                --input-border: rgba(138, 63, 252, 0.25);
+                --text-primary: #f5f5ff;
+                --text-muted: #c7c7d1;
+                --error-bg: rgba(255, 102, 139, 0.15);
+                --error-border: rgba(255, 102, 139, 0.4);
+                --success-bg: rgba(76, 192, 138, 0.18);
+                --success-border: rgba(76, 192, 138, 0.45);
+            }
+
+            input[type="text"],
+            input[type="password"] {
+                background: rgba(17, 12, 42, 0.85);
+                color: var(--text-primary);
+            }
         }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="logo">
+    <main class="login-wrapper">
+        <header class="brand">
             <h1>🔐 QIBOT Admin</h1>
-            <p>Painel de Administração</p>
-        </div>
+            <span>Autentique-se para acessar o painel de disparos e contatos</span>
+        </header>
 
-        <div id="alert" class="alert"></div>
+        <div id="statusBox" class="status-box"></div>
 
-        <form id="loginForm">
-            <div class="form-group">
+        <form id="loginForm" autocomplete="on" novalidate>
+            <div class="form-field">
                 <label for="username">Usuário</label>
-                <input type="text" id="username" name="username" required autocomplete="username">
+                <input id="username" name="username" type="text" placeholder="Seu usuário" autocomplete="username" required>
             </div>
 
-            <div class="form-group">
+            <div class="form-field">
                 <label for="password">Senha</label>
-                <input type="password" id="password" name="password" required autocomplete="current-password">
+                <input id="password" name="password" type="password" placeholder="Sua senha" autocomplete="current-password" required>
             </div>
 
-            <button type="submit" id="loginBtn">Entrar</button>
+            <button type="submit" id="submitBtn">Entrar no painel</button>
         </form>
-    </div>
+
+        <p class="foot-note">Dica: mantenha suas credenciais em um gerenciador seguro.</p>
+    </main>
 
     <script>
         const form = document.getElementById('loginForm');
-        const alertBox = document.getElementById('alert');
-        const loginBtn = document.getElementById('loginBtn');
+        const statusBox = document.getElementById('statusBox');
+        const submitBtn = document.getElementById('submitBtn');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
+        displayMessageFromQuery();
 
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
 
-            loginBtn.disabled = true;
-            loginBtn.textContent = 'Entrando...';
-            hideAlert();
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
+
+            if (!username || !password) {
+                showStatus('Preencha usuário e senha.', 'error');
+                return;
+            }
+
+            setLoading(true);
+            hideStatus();
 
             try {
                 const response = await fetch('/api/admin/login', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    credentials: 'include', // IMPORTANTE: Incluir cookies na requisição
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({ username, password })
                 });
 
-                const result = await response.json();
+                const data = await response.json().catch(() => ({}));
 
-                if (response.ok && result.success) {
-                    // Login bem-sucedido - redirecionar imediatamente
-                    window.location.href = '/admin';
-                } else {
-                    showAlert('❌ ' + (result.message || 'Usuário ou senha incorretos'), true);
-                    loginBtn.disabled = false;
-                    loginBtn.textContent = 'Entrar';
+                if (!response.ok || !data.success) {
+                    const message = data.message || 'Credenciais inválidas. Tente novamente.';
+                    showStatus(`❌ ${message}`, 'error');
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                    return;
                 }
+
+                showStatus('✅ Login realizado! Redirecionando...', 'success');
+                setTimeout(() => {
+                    window.location.replace(data.redirect || '/admin');
+                }, 300);
             } catch (error) {
-                showAlert('❌ Erro de conexão: ' + error.message, true);
-                loginBtn.disabled = false;
-                loginBtn.textContent = 'Entrar';
+                showStatus(`⚠️ Erro de conexão: ${error.message}`, 'error');
+            } finally {
+                setLoading(false);
             }
         });
 
-        function showAlert(message, isError) {
-            alertBox.textContent = message;
-            alertBox.className = 'alert ' + (isError ? 'error' : 'success') + ' show';
+        function setLoading(loading) {
+            submitBtn.disabled = loading;
+            submitBtn.textContent = loading ? 'Autenticando…' : 'Entrar no painel';
         }
 
-        function hideAlert() {
-            alertBox.classList.remove('show');
+        function showStatus(message, type) {
+            statusBox.textContent = message;
+            statusBox.className = `status-box ${type} show`;
+        }
+
+        function hideStatus() {
+            statusBox.className = 'status-box';
+            statusBox.textContent = '';
+        }
+
+        function displayMessageFromQuery() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('error') === '1') {
+                showStatus('❌ Usuário ou senha incorretos.', 'error');
+            } else if (params.get('session') === 'expired') {
+                showStatus('Sua sessão expirou. Faça login novamente.', 'error');
+            }
         }
     </script>
 </body>
