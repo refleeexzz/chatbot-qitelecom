@@ -207,7 +207,9 @@ func setupRoutes(chatbotHandler *handlers.ChatbotHandler, bulkMessageHandler *ha
 	http.HandleFunc("/admin", authHandler.HandleAdminGateway)                                   // Página unificada com login
 	http.HandleFunc("/admin/", authHandler.HandleAdminGateway)                                  // Suporta barra no final
 	zerologlog.Info().Msg("🔧 Rotas admin registradas: /admin e /admin/")
-	http.HandleFunc("/", chatbotHandler.HandleStatic) // página estática sem wrappers
+
+	staticHandler := security.BlockPathPrefixes("/data", "/app/data")(http.HandlerFunc(chatbotHandler.HandleStatic))
+	http.Handle("/", staticHandler) // página estática com proteção de diretórios sensíveis
 
 	// WhatsApp webhook handler
 	whatsappHandler := handlers.NewWhatsAppWebhookHandler(chatbotHandler.Service())

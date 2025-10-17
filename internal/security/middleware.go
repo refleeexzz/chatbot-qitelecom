@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
@@ -16,7 +17,7 @@ type rateLimiter struct {
 	mu       sync.Mutex
 	counts   map[string]int
 	resetAt  time.Time
-	limit    int	
+	limit    int
 	interval time.Duration
 }
 
@@ -128,4 +129,43 @@ func isMetaWebhookRequest(r *http.Request) bool {
 	// Verificar assinatura X-Hub-Signature-256 (presente em webhooks da Meta)
 	signature := r.Header.Get("X-Hub-Signature-256")
 	return signature != ""
+}
+
+// BlockPathPrefixes returns a middleware that denies requests whose cleaned URL path matches any of the
+// provided prefixes. Use this to prevent exposure of sensitive folders like /data or /app/data.
+func BlockPathPrefixes(prefixes ...string) func(http.Handler) http.Handler {
+	normalized := make([]string, 0, len(prefixes))
+	for _, prefix := range prefixes {
+		if prefix == "" {
+			continue
+		}
+		clean := path.Clean(prefix)
+		if !strings.HasPrefix(clean, "/") {
+			clean = "/" + clean
+		}
+		normalized = append(normalized, clean)
+	}
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			requestPath := r.URL.Path
+			if requestPath == "" {
+				requestPath = "/"
+			}
+
+			cleaned := path.Clean(requestPath)
+			if !strings.HasPrefix(cleaned, "/") {
+				cleaned = "/" + cleaned
+			}
+
+			for _, prefix := range normalized {
+				if cleaned == prefix || strings.HasPrefix(cleaned, prefix+"/") {
+					http.NotFound(w, r)
+					return
+				}
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
 }
