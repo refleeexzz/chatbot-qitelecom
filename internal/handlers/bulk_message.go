@@ -12,6 +12,16 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// isAllDigits retorna true se a string contém apenas dígitos.
+func isAllDigits(s string) bool {
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}
+
 type BulkMessageHandler struct {
 	db             *sql.DB
 	whatsappClient *whatsapp.Client
@@ -70,6 +80,27 @@ func (h *BulkMessageHandler) HandleBulkMessage(w http.ResponseWriter, r *http.Re
 			Message: "JSON inválido",
 		})
 		return
+	}
+
+	// Validação de tipos e sanitização
+	if len(req.Message) > 1024 {
+		w.WriteHeader(http.StatusRequestEntityTooLarge)
+		json.NewEncoder(w).Encode(BulkMessageResponse{
+			Status:  "error",
+			Message: "Mensagem muito longa",
+		})
+		return
+	}
+
+	for _, phone := range req.Phones {
+		if len(phone) < 10 || len(phone) > 15 || !isAllDigits(phone) {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			json.NewEncoder(w).Encode(BulkMessageResponse{
+				Status:  "error",
+				Message: "Telefone inválido detectado",
+			})
+			return
+		}
 	}
 
 	// Validar mensagem
@@ -306,6 +337,27 @@ func (h *BulkMessageHandler) HandleBulkTemplateMessage(w http.ResponseWriter, r 
 			Message: "JSON inválido",
 		})
 		return
+	}
+
+	// Validação de tipos e sanitização
+	if len(req.TemplateName) > 128 {
+		w.WriteHeader(http.StatusRequestEntityTooLarge)
+		json.NewEncoder(w).Encode(BulkMessageResponse{
+			Status:  "error",
+			Message: "Nome do template muito longo",
+		})
+		return
+	}
+
+	for _, phone := range req.Phones {
+		if len(phone) < 10 || len(phone) > 15 || !isAllDigits(phone) {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			json.NewEncoder(w).Encode(BulkMessageResponse{
+				Status:  "error",
+				Message: "Telefone inválido detectado",
+			})
+			return
+		}
 	}
 
 	// Validar template name
