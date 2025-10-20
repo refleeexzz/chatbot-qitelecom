@@ -247,11 +247,6 @@ func (h *BulkMessageHandler) getLeadContactsFromDatabase(filterType string) ([]L
 	return contacts, nil
 }
 
-// HandleBulkMessagePage serve a página HTML para envio de mensagens
-func (h *BulkMessageHandler) HandleBulkMessagePage(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "bulk_messages.html")
-}
-
 // HandleGetOptInStats retorna estatísticas de opt-in para o admin
 func (h *BulkMessageHandler) HandleGetOptInStats(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")

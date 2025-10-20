@@ -343,8 +343,3 @@ func (h *AdminHandler) HandleUpdateOptIn(w http.ResponseWriter, r *http.Request)
 		"message": "Opt-in atualizado com sucesso",
 	})
 }
-
-// HandleAdminPage serve a página HTML de administração
-func (h *AdminHandler) HandleAdminPage(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "admin_contacts.html")
-}
