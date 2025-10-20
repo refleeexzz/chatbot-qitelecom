@@ -115,19 +115,18 @@ func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	secureCookie := shouldUseSecureCookie(r)
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
 		Value:    sessionID,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   secureCookie,
+		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
 		Expires:  time.Now().Add(h.session.TTL()),
 		MaxAge:   int(h.session.TTL().Seconds()),
 	})
 
-	log.Info().Str("username", loginReq.Username).Bool("secure", secureCookie).Msg("Login admin bem-sucedido")
+	log.Info().Str("username", loginReq.Username).Msg("Login admin bem-sucedido")
 
 	if viaForm {
 		http.Redirect(w, r, "/admin", http.StatusSeeOther)
@@ -317,7 +316,7 @@ func expireSessionCookie(w http.ResponseWriter, secure bool) {
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   secure,
+		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1,
 		Expires:  time.Unix(0, 0),
