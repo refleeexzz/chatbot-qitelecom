@@ -88,12 +88,14 @@ func (h *ChatbotHandler) HandleChatbot(w http.ResponseWriter, r *http.Request) {
 			newID = uuid.Must(uuid.NewRandom())
 		}
 		sessionID = newID.String()
+		// Detecta HTTPS automaticamente
+		secureCookie := r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https")
 		http.SetCookie(w, &http.Cookie{
 			Name:     "qid",
 			Value:    sessionID,
 			Path:     "/",
 			HttpOnly: true,
-			Secure:   false, // colocar true em produção com HTTPS
+			Secure:   secureCookie,
 			SameSite: http.SameSiteLaxMode,
 			Expires:  time.Now().Add(24 * time.Hour),
 		})
