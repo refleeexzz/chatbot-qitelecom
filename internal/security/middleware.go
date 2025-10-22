@@ -79,6 +79,22 @@ func LoadConfig() SecurityConfig {
 // WrapHandler aplica body limit, rate limiting e headers de segurança ao handler HTTP.
 func WrapHandler(h http.Handler, cfg SecurityConfig, rl *rateLimiter) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Forçar redirecionamento para HTTPS se configurado e requisição não for segura
+		if strings.EqualFold(os.Getenv("FORCE_HTTPS"), "true") && !isMetaWebhookRequest(r) {
+			// Detectar se requisição já veio por HTTPS (via TLS ou cabeçalhos de proxy)
+			secure := r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https") || strings.EqualFold(r.Header.Get("X-Forwarded-Ssl"), "on")
+			fwd := strings.ToLower(r.Header.Get("Forwarded"))
+			if strings.Contains(fwd, "proto=https") {
+				secure = true
+			}
+			if !secure {
+				// Montar URL https equivalente
+				target := "https://" + r.Host + r.URL.RequestURI()
+				// Usar 307 para preservar método em POSTs
+				http.Redirect(w, r, target, http.StatusTemporaryRedirect)
+				return
+			}
+		}
 		// Verificar se é webhook da Meta (WhatsApp/Facebook)
 		isMetaWebhook := isMetaWebhookRequest(r)
 
@@ -106,6 +122,11 @@ func WrapHandler(h http.Handler, cfg SecurityConfig, rl *rateLimiter) http.Handl
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'")
 		w.Header().Set("X-XSS-Protection", "0")
+		// Forçar HSTS se configurado via ENV (apenas em produção com HTTPS)
+		if strings.EqualFold(os.Getenv("FORCE_HSTS"), "true") {
+			// Max-age=63072000 (~2 anos), includeSubDomains e preload opcional
+			w.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
+		}
 
 		h.ServeHTTP(w, r)
 	})
@@ -168,4 +189,38 @@ func BlockPathPrefixes(prefixes ...string) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+// MaskPhone replaces the middle digits of a phone number with asterisks for logging.
+// Ex: 5511999887766 -> 55119*****766
+func MaskPhone(phone string) string {
+	s := strings.TrimSpace(phone)
+	// keep any non-digit structure but mask digits in the middle
+	digits := make([]rune, 0, len(s))
+	for _, r := range s {
+		if r >= '0' && r <= '9' {
+			digits = append(digits, r)
+		}
+	}
+	n := len(digits)
+	if n <= 6 {
+		// too short to meaningfully mask
+		return s
+	}
+	// mask from index 3 to n-3
+	for i := 3; i < n-3; i++ {
+		digits[i] = '*'
+	}
+	// reconstruct using original non-digit separators
+	var out strings.Builder
+	di := 0
+	for _, r := range s {
+		if r >= '0' && r <= '9' {
+			out.WriteRune(digits[di])
+			di++
+		} else {
+			out.WriteRune(r)
+		}
+	}
+	return out.String()
 }

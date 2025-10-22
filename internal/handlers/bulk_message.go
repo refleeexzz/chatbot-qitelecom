@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"leadprojectarrumado/internal/security"
 	"leadprojectarrumado/internal/whatsapp"
 
 	"github.com/rs/zerolog/log"
@@ -449,11 +450,11 @@ func (h *BulkMessageHandler) HandleBulkTemplateMessage(w http.ResponseWriter, r 
 			err := h.whatsappClient.SendTemplateMessageWithMedia(contact.Telefone, req.TemplateName, req.Language, personalParams, req.HeaderImageURL)
 			if err != nil {
 				failed++
-				errors = append(errors, fmt.Sprintf("Erro ao enviar para %s (%s): %v", contact.Nome, contact.Telefone, err))
-				log.Error().Err(err).Str("phone", contact.Telefone).Str("name", contact.Nome).Msg("Falha ao enviar template")
+				errors = append(errors, fmt.Sprintf("Erro ao enviar para %s (%s): %v", contact.Nome, security.MaskPhone(contact.Telefone), err))
+				log.Error().Err(err).Str("phone", security.MaskPhone(contact.Telefone)).Str("name", contact.Nome).Msg("Falha ao enviar template")
 			} else {
 				sent++
-				log.Debug().Str("phone", contact.Telefone).Str("name", contact.Nome).Msg("Template enviado com sucesso")
+				log.Debug().Str("phone", security.MaskPhone(contact.Telefone)).Str("name", contact.Nome).Msg("Template enviado com sucesso")
 			}
 		}
 

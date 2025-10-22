@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"regexp"
 	"strings"
 	"time"
+
+	"leadprojectarrumado/internal/security"
 
 	"github.com/rs/zerolog/log"
 )
@@ -76,8 +77,8 @@ type MediaParameter struct {
 
 func NewClient() *Client {
 	return &Client{
-		AccessToken: os.Getenv("WHATSAPP_TOKEN"),
-		PhoneID:     os.Getenv("WHATSAPP_PHONE_ID"),
+		AccessToken: security.GetSecret("WHATSAPP_TOKEN"),
+		PhoneID:     security.GetSecret("WHATSAPP_PHONE_ID"),
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},

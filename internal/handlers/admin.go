@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"leadprojectarrumado/internal/security"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/rs/zerolog/log"
 )
@@ -204,7 +206,7 @@ func (h *AdminHandler) HandleAddContact(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	log.Info().Str("nome", input.Nome).Str("telefone", input.Telefone).Msg("Contato adicionado")
+	log.Info().Str("nome", input.Nome).Str("telefone", security.MaskPhone(input.Telefone)).Msg("Contato adicionado")
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -269,7 +271,7 @@ func (h *AdminHandler) HandleDeleteContact(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	log.Info().Str("telefone", input.Telefone).Msg("Contato removido")
+	log.Info().Str("telefone", security.MaskPhone(input.Telefone)).Msg("Contato removido")
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -335,7 +337,7 @@ func (h *AdminHandler) HandleUpdateOptIn(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	log.Info().Str("telefone", input.Telefone).Bool("opt_in", input.OptIn).Msg("Opt-in atualizado")
+	log.Info().Str("telefone", security.MaskPhone(input.Telefone)).Bool("opt_in", input.OptIn).Msg("Opt-in atualizado")
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{

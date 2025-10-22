@@ -52,8 +52,8 @@ func NewAuthHandler(session *security.SessionManager) *AuthHandler {
 		username = "admin"
 	}
 
-	password := os.Getenv("ADMIN_PASSWORD")
-	passwordHash := os.Getenv("ADMIN_PASSWORD_HASH")
+	password := security.GetSecret("ADMIN_PASSWORD")
+	passwordHash := security.GetSecret("ADMIN_PASSWORD_HASH")
 
 	if password == "" && passwordHash == "" {
 		password = "admin123"

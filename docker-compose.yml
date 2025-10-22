@@ -24,7 +24,6 @@ services:
       BODY_LIMIT_BYTES: "${BODY_LIMIT_BYTES}"
       RATE_LIMIT_PER_MINUTE: "${RATE_LIMIT_PER_MINUTE}"
       ADMIN_USERNAME: "${ADMIN_USERNAME}"
-      ADMIN_PASSWORD: "${ADMIN_PASSWORD}"
     volumes:
       - ./credentials.json:/app/credentials.json:ro
       # Volume nomeado para persistir apenas os dados do banco de dados SQLite
@@ -40,6 +39,11 @@ services:
     restart: unless-stopped
     networks:
       - qibot-network
+    secrets:
+      - whatsapp_token
+      - whatsapp_app_secret
+      - meta_app_secret
+      - admin_password
 
   redis:
     image: redis:7-alpine
@@ -59,3 +63,13 @@ volumes:
 networks:
   qibot-network:
     driver: bridge
+
+secrets:
+  whatsapp_token:
+    file: ./secrets/whatsapp_token
+  whatsapp_app_secret:
+    file: ./secrets/whatsapp_app_secret
+  meta_app_secret:
+    file: ./secrets/meta_app_secret
+  admin_password:
+    file: ./secrets/admin_password

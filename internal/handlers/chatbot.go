@@ -147,6 +147,17 @@ func (h *ChatbotHandler) HandleStatic(w http.ResponseWriter, r *http.Request) {
 
 // HandleHealth retorna o status de saúde do serviço para monitoramento.
 func (h *ChatbotHandler) HandleHealth(w http.ResponseWriter, r *http.Request) {
+	// Allow only GET and HEAD for the health endpoint. Reject other methods
+	// to avoid accepting or processing any request body (prevents JSON injection).
+	if r.Method == http.MethodHead {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{

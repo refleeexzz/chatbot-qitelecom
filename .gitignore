@@ -13,3 +13,5 @@ vendor/
 docker-compose.yml
 *.pid
 *.sock
+secrets/
+.secrets

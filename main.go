@@ -1,4 +1,3 @@
-
 package main
 
 // Version: 2.0 - Template support added
@@ -203,33 +202,31 @@ func setupRoutes(chatbotHandler *handlers.ChatbotHandler, bulkMessageHandler *ha
 	http.HandleFunc("/api/admin/logout", authHandler.HandleLogout)
 
 	// Static pages
-	http.HandleFunc("/admin", authHandler.HandleAdminGateway)                                   // Página unificada com login
-	http.HandleFunc("/admin/", authHandler.HandleAdminGateway)                                  // Suporta barra no final
+	http.HandleFunc("/admin", authHandler.HandleAdminGateway)  // Página unificada com login
+	http.HandleFunc("/admin/", authHandler.HandleAdminGateway) // Suporta barra no final
 	zerologlog.Info().Msg("🔧 Rotas admin registradas: /admin e /admin/")
 
-       // Bloquear acesso direto a arquivos HTML administrativos
-       forbiddenAdminFiles := map[string]bool{
-	       "/admin_login.html":    true,
-	       "/admin_dashboard.html": true,
-	       "/admin_contacts.html":  true,
-       }
-       oldStaticHandler := security.BlockPathPrefixes("/data", "/app/data")(http.HandlerFunc(chatbotHandler.HandleStatic))
-       staticHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	       if forbiddenAdminFiles[r.URL.Path] {
-		       http.NotFound(w, r)
-		       return
-	       }
-	       oldStaticHandler.ServeHTTP(w, r)
-       })
-       http.Handle("/", staticHandler) // página estática com proteção de diretórios sensíveis e bloqueio de HTML admin
+	// Bloquear acesso direto a arquivos HTML administrativos
+	forbiddenAdminFiles := map[string]bool{
+		"/admin_login.html":     true,
+		"/admin_dashboard.html": true,
+		"/admin_contacts.html":  true,
+	}
+	oldStaticHandler := security.BlockPathPrefixes("/data", "/app/data")(http.HandlerFunc(chatbotHandler.HandleStatic))
+	staticHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if forbiddenAdminFiles[r.URL.Path] {
+			http.NotFound(w, r)
+			return
+		}
+		oldStaticHandler.ServeHTTP(w, r)
+	})
+	http.Handle("/", staticHandler) // página estática com proteção de diretórios sensíveis e bloqueio de HTML admin
 
 	// WhatsApp webhook handler
-	whatsappHandler := handlers.NewWhatsAppWebhookHandler(chatbotHandler.Service())
+	whatsappHandler := handlers.NewWhatsAppWebhookHandlerDefault(chatbotHandler.Service())
 	http.HandleFunc("/webhook/whatsapp", whatsappHandler.HandleWhatsAppWebhook)
 
-	
 }
-
 
 func startServer() {
 	port := os.Getenv("PORT")
