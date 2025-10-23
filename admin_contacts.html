@@ -226,7 +226,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>📊 Painel de Contatos</h1>
+            <h1>Painel de Contatos</h1>
             <p style="color: #666; margin-top: 5px;">Visualize todos os contatos do banco de dados e Redis</p>
         </header>
 
@@ -245,7 +245,7 @@
             </div>
         </div>
 
-        <button class="refresh-btn" onclick="loadContacts()">🔄 Atualizar</button>
+    <button class="refresh-btn" onclick="loadContacts()">Atualizar</button>
 
         <div class="filters">
             <button class="filter-btn active" data-filter="all">Todos</button>
@@ -254,7 +254,7 @@
             <button class="filter-btn" data-filter="Lead">Leads</button>
             <button class="filter-btn" data-filter="Cliente">Clientes</button>
             <div class="search-box">
-                <input type="text" id="searchInput" placeholder="🔍 Buscar por telefone, nome ou email...">
+                <input type="text" id="searchInput" placeholder="Buscar por telefone, nome ou email...">
             </div>
         </div>
 
@@ -330,7 +330,7 @@
                 }
             } catch (error) {
                 console.error('Erro ao carregar contatos:', error);
-                loading.innerHTML = '<p style="color: red;">❌ Erro ao carregar contatos. Tente novamente.</p>';
+                loading.innerHTML = '<p style="color: red;">Erro ao carregar contatos. Tente novamente.</p>';
             }
         }
 

@@ -8,21 +8,24 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <link rel="icon" type="image/png" href="/favicon.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         :root {
-            color-scheme: light dark;
-            --bg-gradient: linear-gradient(135deg, #5337f4 0%, #8a3ffc 100%);
-            --card-bg: rgba(255, 255, 255, 0.92);
-            --card-border: rgba(255, 255, 255, 0.45);
-            --input-border: rgba(83, 55, 244, 0.2);
-            --input-focus: rgba(83, 55, 244, 0.65);
-            --text-primary: #1a1a1a;
-            --text-muted: #5f5f6b;
-            --error-bg: #ffe6e9;
-            --error-border: #ff7b96;
-            --success-bg: #e3f7ef;
-            --success-border: #4cc08a;
-        }
+  --azul-bebe: #6fd3f7;
+  --azul-bebe-escuro: #3bb0dd;
+  --azul-escuro: #1a237e;
+  --amarelo: #f6d55c;
+  --card-bg: rgba(255, 255, 255, 0.92);
+  --card-border: rgba(255, 255, 255, 0.45);
+  --input-border: var(--azul-bebe-escuro);
+  --input-focus: var(--azul-bebe);
+  --text-primary: #1a237e;
+  --text-muted: #5f5f6b;
+  --error-bg: #ffe6e9;
+  --error-border: #ff7b96;
+  --success-bg: #e3f7ef;
+  --success-border: #4cc08a;
+}
 
         * {
             margin: 0;
@@ -31,21 +34,52 @@
         }
 
         body {
-            min-height: 100vh;
-            font-family: 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-gradient);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 32px 16px;
-            color: var(--text-primary);
-        }
+  min-height: 100vh;
+  font-family: 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: linear-gradient(120deg, var(--azul-bebe) 0%, var(--azul-bebe-escuro) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  color: var(--text-primary);
+  transition: background 0.4s;
+}
 
-        .login-wrapper {
-            width: min(420px, 100%);
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 20px;
+body.dark-mode {
+    background: linear-gradient(120deg, var(--azul-escuro) 0%, var(--azul-bebe-escuro) 100%) !important;
+    color: #e3f0ff !important;
+}
+
+.darkmode-btn {
+  background: transparent;
+  border: none;
+  font-size: 2.2rem;
+  cursor: pointer;
+  color: #1a237e;
+  transition: color 0.2s, background 0.2s;
+  padding: 10px 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  outline: none;
+}
+
+.darkmode-btn:focus {
+  box-shadow: 0 0 0 2px var(--azul-bebe);
+}
+
+body.dark-mode .darkmode-btn {
+    color: var(--azul-bebe);
+    background: #222b45;
+}
+
+.login-wrapper {
+    width: min(420px, 100%);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
             backdrop-filter: blur(12px);
             box-shadow: 0 28px 80px rgba(20, 16, 41, 0.28);
             padding: 36px;
@@ -125,27 +159,29 @@
         }
 
         button {
-            width: 100%;
-            border: none;
-            border-radius: 12px;
-            padding: 15px;
-            font-weight: 600;
-            font-size: 16px;
-            background: linear-gradient(135deg, #4a2df0 0%, #742ff9 100%);
-            color: #fff;
-            cursor: pointer;
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
-        }
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  padding: 15px;
+  font-weight: 600;
+  font-size: 16px;
+  background: var(--amarelo);
+  color: #1a237e;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(246,213,92,0.12);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s;
+}
 
         button:hover:not(:disabled) {
-            transform: translateY(-1px);
-            box-shadow: 0 16px 30px rgba(74, 45, 240, 0.25);
-        }
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(246,213,92,0.18);
+  background: #ffe580;
+}
 
-        button:disabled {
-            opacity: 0.65;
-            cursor: wait;
-        }
+button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
 
         .foot-note {
             margin-top: 18px;
@@ -177,10 +213,15 @@
 </head>
 <body>
     <main class="login-wrapper">
-        <header class="brand">
-            <h1>🔐 QIBOT Admin</h1>
-            <span>Autentique-se para acessar o painel de disparos e contatos</span>
-        </header>
+        <header class="brand" style="display:flex;flex-direction:column;gap:6px;position:relative;">
+  <div style="position:absolute;top:0;right:0;">
+    <button id="darkModeBtn" class="darkmode-btn" aria-label="Alternar modo escuro">
+      <i id="darkModeIcon" class="bi bi-moon-stars-fill"></i>
+    </button>
+  </div>
+    <h1>QIBOT Admin</h1>
+  <span>Autentique-se para acessar o painel de administrador.</span>
+</header>
 
         <div id="statusBox" class="status-box"></div>
 
@@ -202,6 +243,23 @@
     </main>
 
     <script>
+        const darkModeBtn = document.getElementById('darkModeBtn');
+    const darkModeIcon = document.getElementById('darkModeIcon');
+        function updateDarkModeIcon() {
+            if (document.body.classList.contains('dark-mode')) {
+                darkModeIcon.className = 'bi bi-brightness-high-fill'; // ícone de luz
+                darkModeBtn.setAttribute('aria-label', 'Alternar para modo claro');
+            } else {
+    darkModeIcon.className = 'bi bi-moon-stars-fill'; // ícone de lua
+    darkModeBtn.setAttribute('aria-label', 'Alternar para modo escuro');
+  }
+}
+darkModeBtn.addEventListener('click', () => {
+  document.body.classList.toggle('dark-mode');
+  updateDarkModeIcon();
+});
+updateDarkModeIcon();
+
         const form = document.getElementById('loginForm');
         const statusBox = document.getElementById('statusBox');
         const submitBtn = document.getElementById('submitBtn');
@@ -236,18 +294,18 @@
 
                 if (!response.ok || !data.success) {
                     const message = data.message || 'Credenciais inválidas. Tente novamente.';
-                    showStatus(`❌ ${message}`, 'error');
+                    showStatus(message, 'error');
                     passwordInput.value = '';
                     passwordInput.focus();
                     return;
                 }
 
-                showStatus('✅ Login realizado! Redirecionando...', 'success');
+                showStatus('Login realizado! Redirecionando...', 'success');
                 setTimeout(() => {
                     window.location.replace(data.redirect || '/admin');
                 }, 300);
             } catch (error) {
-                showStatus(`⚠️ Erro de conexão: ${error.message}`, 'error');
+                showStatus(`Erro de conexão: ${error.message}`, 'error');
             } finally {
                 setLoading(false);
             }
@@ -271,10 +329,10 @@
         function displayMessageFromQuery() {
             const params = new URLSearchParams(window.location.search);
             if (params.get('error') === '1') {
-                showStatus('❌ Usuário ou senha incorretos.', 'error');
-            } else if (params.get('session') === 'expired') {
-                showStatus('Sua sessão expirou. Faça login novamente.', 'error');
-            }
+                        showStatus('Usuário ou senha incorretos.', 'error');
+                    } else if (params.get('session') === 'expired') {
+                        showStatus('Sua sessão expirou. Faça login novamente.', 'error');
+                    }
         }
     </script>
 </body>

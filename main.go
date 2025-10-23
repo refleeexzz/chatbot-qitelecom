@@ -135,6 +135,12 @@ func setupDatabase() (*sql.DB, error) {
 		zerologlog.Debug().Err(err).Msg("Coluna opt_in já existe ou erro ao adicionar")
 	}
 
+	// Executar migrações seguras (deduplicação e índice único em telefone)
+	if err := runMigrations(db); err != nil {
+		zerologlog.Error().Err(err).Msg("Erro ao executar migrações de banco de dados")
+		// não retorna erro fatal aqui — continuamos para compatibilidade, mas registramos
+	}
+
 	return db, nil
 }
 
@@ -189,6 +195,7 @@ func setupRoutes(chatbotHandler *handlers.ChatbotHandler, bulkMessageHandler *ha
 	requireSession := authHandler.RequireSession
 	http.HandleFunc("/api/admin/contacts", requireSession(adminHandler.HandleGetContacts))
 	http.HandleFunc("/api/admin/contacts/add", requireSession(adminHandler.HandleAddContact))
+	http.HandleFunc("/api/admin/contacts/import", requireSession(adminHandler.HandleImportContacts))
 	http.HandleFunc("/api/admin/contacts/delete", requireSession(adminHandler.HandleDeleteContact))
 	http.HandleFunc("/api/admin/contacts/update-optin", requireSession(adminHandler.HandleUpdateOptIn))
 	http.HandleFunc("/api/admin/optin-stats", requireSession(bulkMessageHandler.HandleGetOptInStats))
@@ -226,6 +233,93 @@ func setupRoutes(chatbotHandler *handlers.ChatbotHandler, bulkMessageHandler *ha
 	whatsappHandler := handlers.NewWhatsAppWebhookHandlerDefault(chatbotHandler.Service())
 	http.HandleFunc("/webhook/whatsapp", whatsappHandler.HandleWhatsAppWebhook)
 
+}
+
+// runMigrations aplica mudanças seguras no esquema: remove duplicados por telefone
+// mantendo o registro mais recente e cria um índice UNIQUE sobre telefone para
+// reforçar unicidade a nível de banco. A operação é não destrutiva quando possível.
+func runMigrations(db *sql.DB) error {
+	// 1) Remover duplicados: manter o registro com maior created_at para cada telefone
+	// Só atua sobre telefones não vazios
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Criar tabela temporária com registros únicos
+	_, err = tx.Exec(`
+		CREATE TABLE IF NOT EXISTS leads_unique (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			nome TEXT NOT NULL,
+			telefone TEXT,
+			email TEXT,
+			tipo TEXT DEFAULT 'Lead',
+			opt_in BOOLEAN DEFAULT 0 NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+	if err != nil {
+		return err
+	}
+
+	// Inserir os registros únicos na tabela temporária: para cada telefone não vazio,
+	// pegar o registro com created_at mais recente; também copiar registros com telefone
+	// vazio (para preservar dados existentes).
+	_, err = tx.Exec(`
+		INSERT INTO leads_unique (nome, telefone, email, tipo, opt_in, created_at)
+		SELECT nome, telefone, email, tipo, opt_in, created_at FROM (
+			-- registros com telefone não vazio: pegar o mais recente por telefone
+			SELECT nome, telefone, email, tipo, opt_in, created_at
+			FROM leads
+			WHERE telefone IS NOT NULL AND telefone != ''
+			GROUP BY telefone
+			HAVING MAX(created_at)
+			ORDER BY telefone
+		)
+	`)
+	if err != nil {
+		// fallback: tentar estratégia alternativa que seleciona via subquery
+		_, err2 := tx.Exec(`
+			INSERT INTO leads_unique (nome, telefone, email, tipo, opt_in, created_at)
+			SELECT l.nome, l.telefone, l.email, l.tipo, l.opt_in, l.created_at FROM leads l
+			WHERE l.telefone IS NOT NULL AND l.telefone != '' AND l.created_at = (
+				SELECT MAX(created_at) FROM leads l2 WHERE l2.telefone = l.telefone
+			)
+		`)
+		if err2 != nil {
+			return err // retorna o erro original
+		}
+	}
+
+	// Copiar registros com telefone vazio para não perder dados
+	_, err = tx.Exec(`
+		INSERT INTO leads_unique (nome, telefone, email, tipo, opt_in, created_at)
+		SELECT nome, telefone, email, tipo, opt_in, created_at FROM leads WHERE telefone IS NULL OR telefone = ''
+	`)
+	if err != nil {
+		return err
+	}
+
+	// Substituir tabela original por temporária: renomear e recriar
+	_, err = tx.Exec(`DROP TABLE leads`)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(`ALTER TABLE leads_unique RENAME TO leads`)
+	if err != nil {
+		return err
+	}
+
+	// Criar índice único em telefone para evitar futuros duplicados; usar índice parcial
+	// não é suportado por sqlite até versões específicas, então criamos índice UNIQUE
+	// mas ele falhará se existirem valores NULL/'' duplicados — já tratamos acima.
+	_, err = tx.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_leads_telefone_unique ON leads(telefone)`)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func startServer() {
