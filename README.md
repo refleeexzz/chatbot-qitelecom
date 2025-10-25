@@ -118,4 +118,4 @@ Se integrar com WhatsApp, o telefone pode já vir do remetente e preencher autom
 
 - O sistema pode ser adaptado para outros provedores ou fluxos de atendimento.
 ---
-Desenvolvido por Kauan Botura (dev) e Ronan Moreira (liderança do projeto)
+Desenvolvido por Kauan Botura (dev) 
